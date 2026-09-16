@@ -1,0 +1,14 @@
+{
+  "originHash" : "1448bb744a4e6876582602d641d94cb96b5f201725effe508fd39e82cfe984fa",
+  "pins" : [
+    {
+      "identity" : "swiftnetworking",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/BK-Teisrud/SwiftNetworking.git",
+      "state" : {
+        "revision" : "54fa46cb140de470d6cffe6ba5c691d56e677298"
+      }
+    }
+  ],
+  "version" : 3
+}

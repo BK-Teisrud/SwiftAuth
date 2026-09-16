@@ -1,8 +1,68 @@
+# macOS metadata
 .DS_Store
-/.build
-/Packages
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100/
+.Trashes/
+
+# SwiftPM generated state; keep source .docc catalogs and shared Xcode files
+.build/
+.swiftpm/
+/Packages/
+# Library resolution is defined in Package.swift. Keep the example app lockfile.
+/Package.resolved
+
+# Xcode user settings, products and test/coverage output
 xcuserdata/
+*.xcuserstate
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+build/
+*.xcarchive/
+*.xcresult/
+*.ipa
+*.app/
+*.dSYM/
+*.dSYM.zip
+*.hmap
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+
+# Generated documentation; Auth.docc is source and must be committed
+*.doccarchive/
+/documentation-output/
+
+# Local credentials and signing assets; keep sanitized configuration examples
+.env
+.env.*
+!.env.example
+!.env.sample
 .netrc
+.npmrc
+*.p12
+*.pfx
+*.p8
+*.key
+*.pem
+*.mobileprovision
+*.provisionprofile
+/secrets/
+/credentials/
+*.local.xcconfig
+
+# Editor and machine-local tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+__pycache__/
+*.py[cod]
+.cache/
+/tmp/
+*.log
+
+# CI private dependency mirror; never commit downloaded dependency repositories
+/.ci-dependencies/

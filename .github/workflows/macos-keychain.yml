@@ -1,0 +1,35 @@
+name: Signed macOS Keychain verification
+on:
+  workflow_dispatch:
+    inputs:
+      development_team:
+        description: Apple development team configured on the signed macOS runner
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  keychain:
+    # Runner must already have the team's signing certificate/profile and Xcode 26.2.
+    # This explicit workflow never executes arbitrary pull requests on the signing machine.
+    runs-on: [self-hosted, macOS, auth-keychain]
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      GIT_CONFIG_GLOBAL: ${{ runner.temp }}/auth-keychain-gitconfig
+      AUTH_DEVELOPMENT_TEAM: ${{ inputs.development_team }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: BK-Teisrud/SwiftNetworking
+          ref: 54fa46cb140de470d6cffe6ba5c691d56e677298
+          path: .ci-dependencies/SwiftNetworking
+          token: ${{ secrets.NETWORKING_READ_TOKEN }}
+          persist-credentials: false
+      - name: Resolve private dependency without persistent credentials
+        run: git config --global url."file://${{ github.workspace }}/.ci-dependencies/SwiftNetworking".insteadOf https://github.com/BK-Teisrud/SwiftNetworking.git
+      - name: Verify real Data Protection Keychain in the signed app
+        run: xcodebuild -project Examples/AuthExample/AuthExample.xcodeproj -scheme AuthExample -destination 'platform=macOS' -derivedDataPath "${{ runner.temp }}/auth-keychain-signed" DEVELOPMENT_TEAM="$AUTH_DEVELOPMENT_TEAM" test

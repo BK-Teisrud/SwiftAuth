@@ -1,0 +1,46 @@
+name: Auth
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch private Networking dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BK-Teisrud/SwiftNetworking
+          ref: 54fa46cb140de470d6cffe6ba5c691d56e677298
+          path: .ci-dependencies/SwiftNetworking
+          token: ${{ secrets.NETWORKING_READ_TOKEN }}
+          persist-credentials: false
+      - name: Use local Git mirror for the private dependency
+        run: |
+          swift package config set-mirror --original https://github.com/BK-Teisrud/SwiftNetworking.git --mirror "file://${{ github.workspace }}/.ci-dependencies/SwiftNetworking"
+          git config --global url."file://${{ github.workspace }}/.ci-dependencies/SwiftNetworking".insteadOf https://github.com/BK-Teisrud/SwiftNetworking.git
+      - run: swift test
+      - run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests Examples
+      - name: Build documentation
+        run: xcodebuild -scheme Auth -destination 'generic/platform=macOS' -derivedDataPath "${{ runner.temp }}/auth-documentation" OTHER_DOCC_FLAGS='--warnings-as-errors' CODE_SIGNING_ALLOWED=NO docbuild
+      - name: Test iOS simulator
+        run: xcodebuild -scheme Auth -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath "${{ runner.temp }}/auth-ios-tests" test
+      - name: Test real Keychain in the iOS app host
+        run: xcodebuild -project Examples/AuthExample/AuthExample.xcodeproj -scheme AuthExample -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath "${{ runner.temp }}/auth-hosted-ios-tests" test
+      - name: Build example app on macOS
+        run: xcodebuild -project Examples/AuthExample/AuthExample.xcodeproj -scheme AuthExample -destination 'generic/platform=macOS' -derivedDataPath "${{ runner.temp }}/auth-example-macos" CODE_SIGNING_ALLOWED=NO build
+      - name: Build example app on iOS
+        run: xcodebuild -project Examples/AuthExample/AuthExample.xcodeproj -scheme AuthExample -destination 'generic/platform=iOS Simulator' -derivedDataPath "${{ runner.temp }}/auth-example-ios" CODE_SIGNING_ALLOWED=NO build
+      - name: Build minimum iOS deployment
+        run: xcodebuild -scheme Auth -destination 'generic/platform=iOS Simulator' -derivedDataPath "${{ runner.temp }}/auth-ios-build" build

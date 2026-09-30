@@ -3,11 +3,11 @@ import Foundation
 
 /// Injectable system-browser boundary. Implementations must never use an embedded WKWebView for login.
 @MainActor public protocol AuthBrowserSession: AnyObject, Sendable {
-  /// Åpner systemnettleser mot URL-en og returnerer callback for videre protokollvalidering.
+  /// Opens the system browser at the URL and returns a callback for further protocol validation.
   ///
-  /// `ephemeral` ber om midlertidig nettlesersesjon. Implementasjonen må håndtere kansellering og aldri bruke innebygd WKWebView.
+  /// `ephemeral` requests a temporary browser session. The implementation must handle cancellation and never use an embedded WKWebView.
   func authenticate(url: URL, callbackURI: URL, ephemeral: Bool) async throws -> URL
-  /// Avslutter aktiv nettleseroperasjon og fullfører ventende konsument nøyaktig én gang.
+  /// Stops the active browser operation and completes its waiting consumer exactly once.
   func cancel()
 }
 
@@ -20,18 +20,18 @@ public final class SystemAuthBrowser: NSObject, AuthBrowserSession,
   private var session: ASWebAuthenticationSession?
   private var operationID: UUID?
   private var pending: CheckedContinuation<URL, Error>?
-  /// Oppretter systemnettleseren med en closure som returnerer appens aktive presentasjonsvindu på MainActor.
+  /// Creates a system browser with a closure that returns the application's active presentation window on MainActor.
   public init(presentationAnchor: @escaping @MainActor @Sendable () -> ASPresentationAnchor) {
     self.anchor = presentationAnchor
   }
-  /// Leverer appens eksplisitte vindu til AuthenticationServices. Appen eier vinduets livssyklus.
+  /// Supplies the application's explicit window to AuthenticationServices. The application owns the window lifecycle.
   public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
     anchor()
   }
-  /// Starter én ASWebAuthenticationSession og returnerer callback-URL uten å tolke OIDC-claims.
+  /// Starts one `ASWebAuthenticationSession` and returns its callback URL without interpreting OIDC claims.
   ///
-  /// Custom scheme støttes fra minimumsplattformen; HTTPS krever iOS 17.4 eller macOS 14.4.
-  /// - Throws: `cancelled`, `browserPresentation`, `loginAlreadyInProgress`, `unsupportedProviderFeature` eller task-kansellering.
+  /// Custom schemes work on the minimum platforms; HTTPS requires iOS 17.4 or macOS 14.4.
+  /// - Throws: `cancelled`, `browserPresentation`, `loginAlreadyInProgress`, `unsupportedProviderFeature`, or task cancellation.
   public func authenticate(url: URL, callbackURI: URL, ephemeral: Bool) async throws -> URL {
     guard session == nil else { throw AuthError.loginAlreadyInProgress }
     try Task.checkCancellation()
@@ -76,7 +76,7 @@ public final class SystemAuthBrowser: NSObject, AuthBrowserSession,
       Task { @MainActor [weak self] in if self?.operationID == id { self?.cancel() } }
     }
   }
-  /// Kansellerer systemnettleseren og fullfører ventende autentisering med `AuthError.cancelled`. Uten aktiv operasjon skjer ingenting.
+  /// Cancels the system browser and completes pending authentication with `AuthError.cancelled`. Does nothing without an active operation.
   public func cancel() {
     session?.cancel()
     finish(.failure(AuthError.cancelled))

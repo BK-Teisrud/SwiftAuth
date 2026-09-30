@@ -1,14 +1,14 @@
-## Endring
+## Change
 
-Beskriv problemet og oppførselen etter endringen.
+Describe the problem and the resulting behavior.
 
-## Verifikasjon
+## Verification
 
-Oppgi relevante tester og resultater.
+List relevant tests and results.
 
-## API og dokumentasjon
+## API and documentation
 
-Beskriv offentlig API, migrering og oppdaterte artikler dersom dette er berørt.
+Describe public API changes, migration, and updated documentation when applicable.
 
-- [ ] Ingen credentials eller personopplysninger er lagt til.
-- [ ] Relevante tester og dokumentasjonskontroller er kjørt.
+- [ ] No credentials or personal data were added.
+- [ ] Relevant tests and documentation checks were run.

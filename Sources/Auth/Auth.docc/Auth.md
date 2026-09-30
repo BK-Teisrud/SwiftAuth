@@ -1,63 +1,46 @@
 # ``Auth``
 
-Passordfri OIDC-innlogging, sikker lokal sesjon og sesjonsbundne API-credentials for Swift-apper.
+Build passwordless OIDC sign-in, secure local sessions, and session-bound API credentials without embedding provider secrets or login UI in the package.
 
-Auth har ett bibliotekprodukt og støtter Swift 6.0+, iOS 17+ og macOS 14+. Pakken bruker Apple-rammeverk og Teisrud Development AS sin Networking-pakke. Appen eier presentasjonsvindu, skjermer, navigasjon og brukerdata; innloggingstjenesten eier Apple/Vipps og SMS/e-post-engangskoder.
+## Overview
 
-Start med <doc:GettingStarted>, deretter <doc:Configuration> og <doc:NetworkingIntegration>. API-siden for hvert symbol beskriver parametere og feil. <doc:APIReference> gir en samlet oversikt.
+Auth is a Swift 6 library for iOS 17+ and macOS 14+. It implements Authorization Code with PKCE S256, OIDC discovery, RS256 ID-token validation, Keychain-backed refresh credentials, coordinated refresh, explicit logout, and a SwiftNetworking credential adapter.
 
-## Bruksområder
+The identity service owns Apple, Vipps, email, and SMS authentication. Auth is a public native OIDC client and never receives passwords or one-time codes. Interactive authentication uses `ASWebAuthenticationSession`; embedded web views are outside the supported security contract.
 
-| Behov | Hva Auth leverer | Hva app/tjeneste leverer |
-| --- | --- | --- |
-| REST/JSON | Access-token og én koordinert refresh | Networking-request og backendautorisasjon |
-| Fil/bildeopplasting | Credential til riktig API-klient | Transfer-kontrakt, replay og fremdrift |
-| Chat/realtime | Token ved tilkobling | Handshake, reconnect og kontobundet kanal |
-| Offline-synkronisering | Lokal identitet og senere tokeninnhenting | Brukeravhengig kø, konfliktløsing og lagring |
-| Apple/Vipps | Hosted OIDC-flyt og registrert connection-valg | Brokerintegrasjon, avtaler og tjenesteoppsett |
-| SMS/e-post OTP | Browserrouting til tjenestens innlogging | Generering, levering og kontroll av koden |
+Auth uses Foundation, AuthenticationServices, Security, CryptoKit, and SwiftNetworking. It has no third-party identity SDK, JWT library, DesignSystem dependency, application navigation, or prebuilt screen.
 
-Lokalt `signedIn` er ikke serverautorisasjon eller garanti om nettverkstilgang. Ingen live leverandørintegrasjon er verifisert av pakkens fixturetester. Detaljer og releasekrav finnes i <doc:TestingAndRelease>.
+> Important: No live provider or backend integration is currently claimed as verified. Synthetic signed-token tests verify protocol code, not a production provider configuration.
 
 ## Topics
 
-### Kom i gang
+### Start here
 
 - <doc:GettingStarted>
 - <doc:Configuration>
 - <doc:SessionLifecycle>
+
+### Integrate and extend
+
 - <doc:NetworkingIntegration>
-
-### Utvidelse og drift
-
 - <doc:ProvidersAndExtensions>
 - <doc:ErrorsAndRecovery>
+
+### Security and maintenance
+
 - <doc:Security>
-- <doc:TestingAndRelease>
 - <doc:Architecture>
+- <doc:TestingAndRelease>
 - <doc:APIReference>
 
-### Sesjon og appintegrasjon
+### Core API
 
 - ``AuthClient``
 - ``AuthConfiguration``
-- ``AuthIdentity``
 - ``AuthState``
+- ``AuthError``
 - ``AuthSessionObserver``
 - ``AuthCredentialProvider``
-
-### Browser og tjenesteadapter
-
-- ``AuthLoginChoice``
-- ``AuthAPIResource``
-- ``AuthBrowserSession``
-- ``SystemAuthBrowser``
-- ``AuthOIDCAdapter``
 - ``NativeOIDCAdapter``
-- ``AuthTokenResponse``
-- ``AuthIDTokenBinding``
-
-### Feilhåndtering
-
-- ``AuthError``
-- ``AuthRecoveryAction``
+- ``AuthOIDCAdapter``
+- ``SystemAuthBrowser``

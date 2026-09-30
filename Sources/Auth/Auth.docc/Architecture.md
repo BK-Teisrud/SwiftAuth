@@ -1,62 +1,33 @@
-# Arkitektur og vedlikehold
+# Architecture
 
-Ansvarsdeling for alle produksjonsfiler og kontraktene mellom dem.
+The package keeps browser presentation, OIDC protocol work, session coordination, persistence, and API credentials behind explicit ownership boundaries.
 
-## Modulgrense
+## Ownership
 
-Ett Auth-target eksporterer sesjons-API, browser/adapters og Networking-provider. Interne helpers er ikke stabile app-API-er. Pakken har ingen SwiftUI-skjermer, appnavigasjon, database, profiler eller DesignSystem. Eksempelappens UI er kun en separat integrasjonsvert.
+- ``AuthClient`` owns session state, operation generations, refresh sharing, persistence commits, and public lifecycle operations.
+- ``NativeOIDCAdapter`` owns PKCE creation, browser operations, and the native OIDC flow.
+- The internal OIDC service actor owns discovery, endpoint trust, token exchange, JWKS caching, signature validation, and claim validation outside MainActor.
+- ``SystemAuthBrowser`` owns one `ASWebAuthenticationSession` and remains on MainActor.
+- ``AuthCredentialProvider`` binds a SwiftNetworking credential boundary to one session identity.
+- ``AuthSessionObserver`` mirrors token-free state for Observation on MainActor.
+- Keychain storage owns credentials; session files own only the process lock and credential-free logout marker.
 
-```text
-App / AuthSessionObserver (MainActor)
-  → AuthClient (actor, lagring og sesjonslivssyklus)
-      → AuthOIDCAdapter / NativeOIDCAdapter (MainActor, browser)
-          → OIDCService (egen actor, HTTP/cache/parsing/validering)
-      → SessionStorage / KeychainSessionStorage (synkrone commits)
-      → SessionLease / SessionFiles (lease og logout-markør)
-Networking HTTPClient
-  → AuthCredentialProvider (actor, sesjonsbinding)
-      → AuthClient
-```
+## Commit ordering
 
-## Filoversikt
+Login and refresh validate the complete response before mutation. A replacement refresh token is persisted before its access token is published. Logout clears memory and invalidates operations before durable cleanup, while the logout marker prevents a later process from silently restoring credentials after failed deletion.
 
-| Fil | Ansvar |
-| --- | --- |
-| Configuration/AuthConfiguration.swift | Immutable konfigurasjon, URI/scopes/tillitsliste-validering og hashed storage identity; login/resource-enums. |
-| Session/AuthClient.swift | Offentlig sesjonsactor, generasjon, observers, login/restore/logout, delt refresh, tidsfrist og atomisk persistence/resultat. |
-| Session/SessionContext.swift | Lokal sesjons-ID, stored/access, refresh-block, installasjon av adaptiv margin og fallback AuthState. |
-| Session/AuthState.swift | Tokensfri identitet og observerbare tilstander. |
-| Session/AuthSessionObserver.swift | MainActor/Observation-adapter, weak observer-task og cancellation ved deinit. |
-| Session/AsyncResultGate.swift | NSLock-beskyttet single-result continuation-gate; kansellerbar waiter uten å stoppe shared task. |
-| Session/SessionLease.swift | Prosessregistrering og OS flock; holder fil-descriptor, frigjør ved deinit. |
-| Credentials/AuthCredentialProvider.swift | Networking CredentialProvider med immutable binding til første vellykkede credential-sesjon. |
-| Browser/AuthBrowserSession.swift | Injectable browserprotocol og ASWebAuthenticationSession med continuation/operation-ID/presentation anchor. |
-| OIDC/AuthOIDCAdapter.swift | Betrodd tjenesteprotocol og redigert sensitiv DTO; original ID-token-binding. |
-| OIDC/NativeOIDCAdapter.swift | Interaktiv operation-ID, PKCE/state/nonce, authorize/resource/connection, refresh-forberedelse og providerlogout-hint. |
-| OIDC/OIDCService.swift | Discovery/endpoint-policy, TTL/key-cache, bounded HTTP, typed tokenrespons og valideringskoordinering utenfor MainActor. |
-| OIDC/IDTokenValidator.swift | JWS/JWK/RS256/claimkontroller og ett verifisert identitet/binding-resultat; DER public-key-format for Apple. |
-| OIDC/OIDCCallbackValidator.swift | Ren callbackadresse/state/issuer/duplikatkontroll. |
-| OIDC/OIDCEncoding.swift | Apple SHA/random, canonical base64url og StrictJSON duplicate/depth-kontroll. |
-| Storage/SessionStorage.swift | Versionert StoredSession, sync storageprotocol, Keychain, atomisk pending-logout-marker og sikre lagringsfeil. |
-| Storage/SessionFiles.swift | Credential-fri Application Support-directory, tillatelser og iOS file-protection-policy. |
-| Errors/AuthError.swift | Safe Error-enum og foreslåtte recoveryAction-verdier. |
+Operation generations stop late work from mutating a newer state. A separate session identity prevents old API clients from acquiring credentials after restore, login, logout, or account change.
 
-## Actor- og generasjonsmodell
+## Concurrency
 
-MainActor brukes til browserpresentasjon, adapterens interaktive bookkeeping og UI-observasjon. OIDCService har egen actor, så HTTP-forberedelse, JSON, cache og SecKey-validering ikke utføres som MainActor-arbeid. AuthClient serialiserer sesjonsendringer; ingen eksklusivitet antas over await.
+`AuthClient` and the OIDC service are actors. Browser and observation types are MainActor-bound. Keychain calls remain synchronous inside the actor so no suspension occurs between generation checks and persistence commits. One refresh task is shared per session.
 
-Operasjonsgenerasjon skifter ved restore/login/avbrudd/logout og hindrer sene commits. Sesjons-ID skifter ved restore, vellykket login og logout og hindrer API-klientens credentialbinding fra å følge en annen login. Refresh beholder sesjons-ID. Delt refresh har også egen ID slik at cleanup/sent resultat fra gammel task ikke kan endre en nyere task.
+## Extension points
 
-Keychain/filsletting er synkront der commit følger generasjonskontroll. Det gjør sjekk→commit atomisk i actor-turn. Det betyr ikke at lagring aldri kan feile eller at bakgrunnsarbeid kan bruke WhenUnlocked-data ved låst enhet.
+``AuthOIDCAdapter`` is the provider-protocol boundary, ``AuthBrowserSession`` is the browser boundary, and SwiftNetworking transport is the network boundary. These are trusted extensions and must preserve all documented validation, privacy, cancellation, and response-limit guarantees.
 
-## Persistence-record
+Keep domain models, screens, navigation, backend authorization, account caches, and application lifecycle coordination outside this package.
 
-StoredSession versjon 1 inneholder identity, refreshToken, optional loginNonce/idTokenBinding, refreshRejected og refreshInFlight. JSONEncoder/Decoder er lagringsformatet. Nye optional binding-felter kan mangle i eldre records; policyen krever login hvis ny ID-token ikke kan bindes sikkert. Ukjent version eller ugyldige required metadata feiler med storage. Ingen generell migrasjonsmotor finnes.
+## Documentation maintenance
 
-Logout-marker og Keychain er to separate mekanismer. Marker før delete hindrer restart fra å restaurere credentials når delete feiler. Hvis begge writes/deletes er utilgjengelige, kan ingen varig garanti lages; feilen er eksplisitt.
-
-## Vedlikehold
-
-Endre kontrakter samlet i kildekommentarer, DocC-guider og eksempelapp. Ved endring av claimregler, key-cache, callback, actorgrenser eller commitrekkefølge må faktiske native signatur-/protokolltester oppdateres. Ikke legg til ekstra targets eller protokoller bare for filstørrelse; bevar det enkle app-API-et.
-
-Auth.docc er den kanoniske komplette veiledningen. README og Docs/README peker dit; ProviderSetup og Release er konkrete oppsetts-/utgivelsesveiledninger. Ingen analyserapporter skal legges i repositoryet.
+Update public Swift comments, DocC guides, tests, and provider integration guidance together when a contract changes. Keep public documentation in English. Do not add generated documentation, analysis reports, internal findings, machine-specific files, or standalone maintenance-policy Markdown files to the repository.

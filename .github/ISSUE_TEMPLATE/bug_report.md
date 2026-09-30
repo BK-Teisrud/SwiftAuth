@@ -1,22 +1,22 @@
 ---
-name: Feilrapport
-about: Rapporter en feil med en minimal reproduksjon
+name: Bug report
+about: Report a bug with a minimal reproduction
 labels: bug
 ---
 
-## Feil og forventet oppførsel
+## Actual and expected behavior
 
-## Minimal reproduksjon
+## Minimal reproduction
 
-Bruk syntetiske issuer-, callback- og credentialverdier.
+Use synthetic issuer, callback, and credential values.
 
-## Miljø
+## Environment
 
-- Auth-versjon/commit:
-- Networking-versjon:
+- Auth version or commit:
+- Networking version:
 - Swift/Xcode:
-- Plattform og OS-versjon:
+- Platform and OS version:
 
-## Relevante feilmeldinger
+## Relevant error messages
 
-Fjern tokens, authorization codes, callback-URL-er, personopplysninger og sensitive providerdata. Sikkerhetsproblemer rapporteres privat; se SECURITY.md.
+Remove tokens, authorization codes, callback URLs, personal data, and sensitive provider data. Report security vulnerabilities privately; see SECURITY.md.

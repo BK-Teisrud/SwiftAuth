@@ -1,11 +1,11 @@
 ---
-name: Funksjonsønske
-about: Beskriv et konkret autentiseringsbehov
+name: Feature request
+about: Describe a concrete authentication need
 labels: enhancement
 ---
 
-## App- eller providerbehov
+## Application or provider need
 
-## Foreslått oppførsel og API
+## Proposed behavior and API
 
-## Protokoll, sesjonslivssyklus, sikkerhet og alternativer
+## Protocol, session lifecycle, security, and alternatives

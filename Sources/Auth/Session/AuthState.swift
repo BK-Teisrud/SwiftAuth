@@ -2,11 +2,11 @@ import Foundation
 
 /// Stable identity uses issuer plus subject, never email.
 public struct AuthIdentity: Sendable, Equatable, Codable {
-  /// Verifisert utstederidentifikator, tilsvarende ID-tokenets `iss`.
+  /// The verified issuer identifier matching the ID token's `iss` claim.
   public let issuer: String
-  /// Stabil brukeridentifikator fra `sub`; skal kombineres med utsteder, ikke erstattes med e-post.
+  /// The stable user identifier from `sub`; combine it with issuer and never replace it with email.
   public let subject: String
-  /// Oppretter en identitetsverdi. Initialisatoren utfører ingen signatur- eller claim-validering; adapteren har dette ansvaret.
+  /// Creates an identity value. This initializer performs no signature or claim validation; the adapter owns that responsibility.
   public init(issuer: String, subject: String) {
     self.issuer = issuer
     self.subject = subject
@@ -15,14 +15,14 @@ public struct AuthIdentity: Sendable, Equatable, Codable {
 
 /// Contains no credentials. Temporary failures do not silently discard local identity.
 public enum AuthState: Sendable, Equatable {
-  /// Starttilstand før eksplisitt gjenoppretting. Lagringsfeil kan la tilstanden bli stående her.
+  /// Initial state before explicit restore. A storage failure can leave the client in this state.
   case restoring
-  /// Ingen aktiv lokal identitet. Et valgfritt problem beskriver eksempelvis mislykket sletting.
+  /// No active local identity. An optional issue can describe a failed deletion or similar condition.
   case signedOut(problem: AuthError? = nil)
-  /// Eksplisitt interaktiv innlogging pågår. API-forespørsler åpner aldri innlogging automatisk.
+  /// Explicit interactive login is in progress. API requests never open login automatically.
   case signingIn
-  /// Lokal identitet er kjent. Et problem kan kreve tiltak; tilstanden garanterer ikke gyldig API-token eller serverrettigheter.
+  /// Local identity is known. An issue may require action; this state does not guarantee a valid API token or server authorization.
   case signedIn(AuthIdentity, problem: AuthError? = nil)
-  /// En kjent eller ukjent identitet trenger ny eksplisitt innlogging. Årsaken bevares ved mislykket eller avbrutt innlogging.
+  /// A known or unknown identity requires new explicit login. Failed or cancelled login preserves the reason.
   case reauthenticationRequired(AuthIdentity?, reason: AuthError)
 }

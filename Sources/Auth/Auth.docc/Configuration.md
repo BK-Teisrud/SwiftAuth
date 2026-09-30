@@ -1,57 +1,42 @@
-# Konfigurasjon
+# Configuration
 
-Alle innstillinger og valideringsregler for én app, ett miljø og én API-resource.
+Treat ``AuthConfiguration`` as an immutable trust contract for one public OIDC client, one API resource, and one local storage identity.
 
-## AuthConfiguration
+## Required values
 
-Konfigurasjonen er en immutable Sendable/Equatable-verdi. Initializeren kaster `invalidConfiguration` ved ugyldige verdier. Validering skjer før browser eller credentialutveksling; korrekt syntaks erstatter ikke registrering hos tjenesten.
+- `issuer` is the exact HTTPS issuer URL. User information, query, and fragments are rejected.
+- `clientID` identifies a public native client. Never ship a client secret.
+- `redirectURI` must exactly match provider and application registration.
+- `keychainNamespace` must uniquely identify the application and environment.
 
-| Parameter | Standard | Betydning og kontroll |
-| --- | --- | --- |
-| issuer | Påkrevd | HTTPS-URL med host, uten user/password/query/fragment. Strengen må matche discovery og ID-token eksakt, inklusive trailing slash. |
-| clientID | Påkrevd | Ikke-tom ID for offentlig native klient. Ingen secret støttes. |
-| redirectURI | Påkrevd | Registrert login-callback. Ingen credentials, port, query eller fragment. |
-| scopes | openid, offline_access | Må inkludere openid, være unike og ikke-tomme. Tillatte tegn er ASCII 0x21–0x7E unntatt anførselstegn og backslash. |
-| apiResource | Påkrevd | Én av resource-kontraktene nedenfor. Inngår i lagringsidentiteten. |
-| postLogoutRedirectURI | nil | Valgfri callback med samme syntaksregler som login. Kreves av medfølgende providerlogout. |
-| keychainNamespace | Påkrevd | Ikke-tom verdi som skal identifisere app og miljø. Ikke bruk persondata eller tokens. |
-| loginChoices | serviceSelection | Ikke-tom liste. Connection-navn må være ikke-tomme. Native adapter tillater bare et konfigurert valg. |
-| ephemeralBrowserSession | false | Sendes til ASWebAuthenticationSession som preferanse om privat browserøkt. Er ikke en garanti om upstream logout. |
-| trustedEndpointOrigins | tom liste | Ekstra HTTPS-origins for discovery-endepunkter. Ingen credentials/query/fragment; path er tom eller /. |
-| trustedIDTokenAudiences | tom liste | Ikke-tomme, unike ekstra ID-token-audiences som faktisk er betrodde. Client ID er allerede tillatt. |
-| refreshTimeout | 60 sekunder | Finite, positiv, høyst 3600. Samlet frist for én koordinert refresh inklusive forberedelse og validering. |
+`scopes` defaults to `openid` and `offline_access`, must include `openid`, and cannot contain duplicates or whitespace-delimited values.
 
-Scopelisten er ikke en liste over approller. Rettigheter og API-audience kontrolleres på serveren.
+## API resource
 
-## API-resource
+Use `.auth0Audience` only when the service explicitly defines the `audience` parameter. Use `.oauthResource` for RFC 8707 `resource`. The value identifies the protected API and is not inferred from the issuer or the Networking base URL.
 
-`AuthAPIResource.auth0Audience(String)` sender `audience` ved authorize og refresh. Verdien må være ikke-tom; den behandles som en leverandøridentifikator, ikke som et nettverksendepunkt. Ingen Auth0-SDK brukes.
+The resource participates in the storage and process-lock identity. Multi-resource token exchange is not supported by this version.
 
-`AuthAPIResource.oauthResource(URL)` sender `resource`. URL-en må ha scheme og må ikke ha fragment, user eller password. Konfigurasjonen krever ikke HTTPS for denne identifikatoren: den er ikke URL-en som credential-requesten sendes til. Tjenesten må støtte den avtalte resource-kontrakten.
+## Login choices
 
-API-resource og ID-token-audience er forskjellige: ID-token skal være til native klientens client ID. `trustedIDTokenAudiences` gjør ikke en annen API-resource automatisk tilgjengelig.
+``AuthLoginChoice/serviceSelection`` lets the hosted service present its configured choices. ``AuthLoginChoice/connection(_:)`` sends an exact provider-specific connection name. It does not install Apple, Vipps, email, or SMS support by itself. Enable a connection only after its broker integration has been configured and tested.
 
-## Callback-typer
+## Redirects and logout
 
-| Type | OS | Krav i app/tjeneste |
-| --- | --- | --- |
-| Eget scheme | iOS 17+, macOS 14+ | URL Types i appen, eksakt registrert URI hos tjenesten, host eller path i URI. |
-| HTTPS | iOS 17.4+, macOS 14.4+ | Host og ikke-tom path, Associated Domains, AASA og registrert URI. Konfigurasjonen avvises på eldre OS. |
+`postLogoutRedirectURI` enables separate provider logout when discovery publishes `end_session_endpoint`. Run provider logout before local logout when the service requires an in-memory ID-token hint. Auth never persists ID tokens.
 
-Custom scheme kan ikke være http, file, data eller javascript. Pakken tillater syntaktisk andre schemes, men appen bør bruke et eget, registrert scheme. Callback-validering sammenligner scheme, host, port og percent-encoded path; ikke legg ekstra queryparametere i redirectURI. Tjenestens response-parametere legges til callbacken under flyten.
+`prefersEphemeralWebBrowserSession` requests an ephemeral browser session but does not guarantee provider logout or isolation from all system browser state.
 
-## Discovery-endepunkter og tillit
+## Endpoint trust
 
-Authorization, token, JWKS og eventuell end-session URL må bruke HTTPS. Origin betyr host og effektiv port; manglende port behandles som 443. Issuers origin er automatisk tillatt. Registrer bare kjente ekstra origins i `trustedEndpointOrigins` hvis tjenesten bruker flere domener.
+Discovery endpoints on the issuer origin are trusted by default. Add only reviewed HTTPS origins to `trustedEndpointOrigins`. URLs with credentials or fragments are rejected. Static endpoint query parameters are preserved unless they collide with protocol parameters supplied by Auth.
 
-Statiske queryparametere bevares. Navn som kolliderer med OAuth/OIDC-felter avvises, eksempelvis client_id, client_secret, redirect_uri, response_type, scope, state, nonce, code_challenge, code_challenge_method, grant_type, code, code_verifier, refresh_token, audience, resource, post_logout_redirect_uri, connection og id_token_hint. Redirects fra endpoint-requestene avvises. Også en annonsert valgfri end-session URL valideres under discovery.
+`trustedIDTokenAudiences` adds reviewed ID-token audiences, not API resources. The client ID remains required, and the audience set is bound to the session across refresh and restart.
 
-## Isoler apper og miljøer
+## Refresh timeout
 
-Lagring identifiseres av JSON-kodet liste med namespace, issuer-streng, client ID og resource-type/verdi, deretter SHA-256. Resource-typene er tagget for å unngå kollisjon mellom audience og resource. Scopes, callback, browserpreferanse og tillitslister inngår ikke i hashen.
+`refreshTimeout` defaults to 60 seconds and must be greater than zero and no more than 3600 seconds. It covers refresh preparation, token exchange, validation, and persistence. It does not limit the time a user spends in the browser.
 
-Bruk for eksempel `com.company.app.staging` og `com.company.app.production`, med separate tjenesteregistreringer. Endring av namespace/issuer/client/resource gir en annen lagringsidentitet; gamle credentials migreres eller slettes ikke automatisk. Opprett ikke to klienter for samme identitet: `sessionAlreadyInUse` beskytter roterende credentials.
+## Storage
 
-## Innloggingsvalg
-
-`.serviceSelection` lar hosted UI velge metode. `.connection("registered-name")` sender connection-feltet. Connection er leverandørspesifikt, og den native adapteren sender det ikke ved refresh. Listen aktiverer ingen Apple/Vipps/OTP-integrasjon i seg selv. Se <doc:ProvidersAndExtensions>.
+The namespace, issuer, client ID, and API resource are encoded and hashed to derive storage identifiers. Use separate namespaces for development, staging, and production. Keychain access groups and application-extension sharing are not supported.

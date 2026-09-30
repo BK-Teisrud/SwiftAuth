@@ -5,18 +5,18 @@ import Networking
 public actor AuthCredentialProvider: CredentialProvider {
   private let client: AuthClient
   private var sessionID: UUID?
-  /// Oppretter en provider som bindes ved første vellykkede tokenanskaffelse. Lag en ny etter vellykket login eller restore.
+  /// Creates a provider that binds on its first successful token acquisition. Create a new one after successful login or restore.
   public init(client: AuthClient) { self.client = client }
-  /// Henter sensitivt bearer-token og binder provideren til klientens sesjons-ID. Bindingen endres aldri.
-  /// - Throws: `operationInvalidated` ved sesjonsbytte eller feil fra ``AuthClient/validAccessToken()``.
+  /// Gets a sensitive bearer token and binds the provider to the client's session ID. The binding never changes.
+  /// - Throws: `operationInvalidated` after a session change, or an error from ``AuthClient/validAccessToken()``.
   public func bearerToken() async throws -> String {
     let (id, token) = try await client.credential(expectedSession: sessionID)
     guard sessionID == nil || sessionID == id else { throw AuthError.operationInvalidated }
     sessionID = id
     return token
   }
-  /// Håndterer et avvist token innenfor samme bundne sesjon. Kan ikke brukes før første vellykkede tokenanskaffelse.
-  /// - Throws: `operationInvalidated` ved manglende binding eller sesjonsbytte; ellers klientens refresh-feil.
+  /// Handles a rejected token within the same bound session. Cannot be used before the first successful token acquisition.
+  /// - Throws: `operationInvalidated` for a missing binding or session change; otherwise the client's refresh error.
   public func recover(rejectedToken: String) async throws -> String {
     guard let sessionID else { throw AuthError.operationInvalidated }
     return try await client.recover(rejectedToken: rejectedToken, expectedSession: sessionID)

@@ -8,7 +8,7 @@ The identity service owns Apple, Vipps, email, and SMS authentication. The appli
 
 ## Installation
 
-Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager and select the `Auth` product. Auth 0.1.0 uses the exact SwiftNetworking 0.3.0 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
+Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager and select the `Auth` product. Auth uses the exact SwiftNetworking 0.3.1 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
 
 ```swift
 import Foundation

@@ -1,11 +1,14 @@
 ## Endring
 
-Beskriv problemet og den nye oppførselen.
+Beskriv problemet og oppførselen etter endringen.
 
 ## Verifikasjon
 
-Oppgi kontroller som faktisk er kjørt og eventuelle uavklarte integrasjoner.
+Oppgi relevante tester og resultater.
 
-## Dokumentasjon og kompatibilitet
+## API og dokumentasjon
 
-Beskriv endrede API-/sesjonskontrakter, migrering og relevante dokumentasjonsoppdateringer.
+Beskriv offentlig API, migrering og oppdaterte artikler dersom dette er berørt.
+
+- [ ] Ingen credentials eller personopplysninger er lagt til.
+- [ ] Relevante tester og dokumentasjonskontroller er kjørt.

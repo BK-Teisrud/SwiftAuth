@@ -6,7 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/BK-Teisrud/SwiftNetworking.git",
       "state" : {
-        "revision" : "54fa46cb140de470d6cffe6ba5c691d56e677298"
+        "revision" : "6d43ed8e97e69f0f5ef0c9104962cde5963acbdc",
+        "version" : "0.3.0"
       }
     }
   ],

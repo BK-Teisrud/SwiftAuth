@@ -506,6 +506,14 @@ extension OIDCValidationTests {
       now: { Date() })
     await #expect(throws: AuthError.discovery) { try await conflict.discover() }
   }
+
+  @Test(arguments: ["not-json", #"{"issuer":"first","issuer":"second"}"#])
+  func malformedDiscoveryIsReportedAsDiscovery(_ body: String) async throws {
+    let service = OIDCService(
+      configuration: try configuration(),
+      transport: StaticDiscovery(data: Data(body.utf8)), now: { Date() })
+    await #expect(throws: AuthError.discovery) { try await service.discover() }
+  }
 }
 private struct StaticDiscovery: HTTPTransport {
   let data: Data

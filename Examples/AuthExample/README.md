@@ -1,6 +1,6 @@
 # AuthExample
 
-Åpne AuthExample.xcodeproj i Xcode og velg AuthExample-schemet. Prosjektet er en faktisk SwiftUI-app for iOS 17+/macOS 14+ og bruker lokal Auth samt samme låste private Networking-revisjon. Ingen tredjeparts-SDK-er brukes.
+Åpne AuthExample.xcodeproj i Xcode og velg AuthExample-schemet. Prosjektet er en faktisk SwiftUI-app for iOS 17+/macOS 14+ og bruker lokal Auth samt samme eksakte offentlige Networking-release. Ingen tredjeparts-SDK-er brukes.
 
 Sett targetets brukerkonfigurasjon i Build Settings:
 

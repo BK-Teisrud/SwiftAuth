@@ -26,7 +26,7 @@ SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx"; SDKROOT = auto;
 TARGETED_DEVICE_FAMILY = "1,2"; INFOPLIST_FILE = Info.plist; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = AuthExample.entitlements;
 AUTH_ISSUER = ""; AUTH_CLIENT_ID = ""; AUTH_RESOURCE = ""; AUTH_API_URL = ""; }; };
 000000000000000000000014 = { isa = XCLocalSwiftPackageReference; relativePath = ../..; };
-000000000000000000000015 = { isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/BK-Teisrud/SwiftNetworking.git"; requirement = { kind = revision; revision = 54fa46cb140de470d6cffe6ba5c691d56e677298; }; };
+000000000000000000000015 = { isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/BK-Teisrud/SwiftNetworking.git"; requirement = { kind = exactVersion; version = 0.3.0; }; };
 000000000000000000000016 = { isa = XCSwiftPackageProductDependency; package = 000000000000000000000014; productName = Auth; };
 000000000000000000000017 = { isa = XCSwiftPackageProductDependency; package = 000000000000000000000015; productName = Networking; };
 000000000000000000000018 = { isa = PBXBuildFile; productRef = 000000000000000000000016; };

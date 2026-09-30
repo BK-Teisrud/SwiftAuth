@@ -1,6 +1,6 @@
 # Auth
 
-Egen Swift-pakke for passordfri OIDC-innlogging, sikker lokal sesjon og API-credentials. Swift 6.0+, iOS 17+, macOS 14+. Ett bibliotekprodukt, ett hovedtarget og ett testtarget. Ingen DesignSystem-avhengighet, ferdige skjermer eller navigasjon.
+Swift-pakke for passordfri OIDC-innlogging, sikker lokal sesjon og API-credentials. Versjon 0.1.0. Swift 6.0+, iOS 17+, macOS 14+. Ett bibliotekprodukt, ett hovedtarget og ett testtarget. Ingen DesignSystem-avhengighet, ferdige skjermer eller navigasjon.
 
 **Innloggingstjenesten eier Apple, Vipps og e-post/SMS-engangskoder.** Appen er en offentlig OIDC-klient. Den samler ikke inn passord eller engangskoder, og har ingen klienthemmelighet. AuthenticationServices viser tjenestens innlogging i systemnettleseren.
 
@@ -28,8 +28,8 @@ Discovery krever code, S256 og RS256. Endepunktene må bruke HTTPS, uten credent
 
 ## Installasjon
 
-Velg produktet `Auth` i appen. Hvis appen skal opprette HTTPClient direkte, velg også Networking-produktet fra SwiftNetworking som appavhengighet; eksempelappen viser begge produktreferansene. Package.swift bruker den publiserte Networking-revisjonen `54fa46cb140de470d6cffe6ba5c691d56e677298` fra [SwiftNetworking](https://github.com/BK-Teisrud/SwiftNetworking). Avhengigheten er låst til en faktisk publisert commit; ingen lokal nabomappe eller flytende branch kreves. Bytt til en godkjent SemVer-release når Networking har en slik release. Auth må selv publiseres/tagges før appene kan velge en remote Auth-versjon.
-Networking-repositoryet er privat. Apputviklere og appenes CI må ha eksplisitt lesetilgang. Auths workflow forventer repository-secret `NETWORKING_READ_TOKEN` med Contents: Read kun for SwiftNetworking. Workflowen henter den låste revisjonen og bruker en lokal Git-mirror; ingen token bygges inn i Package.swift eller URL-er. Sett denne secret-en før GitHub-CI kjøres. Ingen secret er opprettet automatisk. `.ci-dependencies` og den lokale mirror-konfigurasjonen ignoreres av Git.
+Legg til `https://github.com/BK-Teisrud/SwiftAuth.git` i Swift Package Manager og velg produktet `Auth`. Hvis appen skal opprette HTTPClient direkte, velg også Networking-produktet fra SwiftNetworking som appavhengighet; eksempelappen viser begge produktreferansene. Auth 0.1.0 bruker den eksakte publiserte Networking-releasen `0.3.0` fra [SwiftNetworking](https://github.com/BK-Teisrud/SwiftNetworking). Ingen lokal nabomappe eller flytende branch kreves.
+Networking-repositoryet er offentlig og kan løses av SwiftPM uten credentials. Ingen GitHub-token skal bygges inn i Package.swift, package-URL-er, appen eller CI-konfigurasjonen.
 
 Ingen konfigurasjon leses automatisk fra appens Info.plist. Appen må likevel registrere callback-schemet i sitt eget URL Types-oppsett.
 
@@ -146,7 +146,7 @@ Custom-scheme callbacks støttes på iOS 17/macOS 14. HTTPS-callbacks bruker App
 
 `AuthError.recoveryAction` foreslår apphandling: retry, signIn, configure, waitForStorage eller none. Dette er UI-veiledning; det omgår aldri klientens refresh-karantene. Før-send nettverksfeil uttrykkes som networkUnavailable, HTTP 5xx som serviceUnavailable og avvisning ved første tokenutveksling som providerRejected. Etter mulig refresh-sending behandles transportfeil konservativt som refreshOutcomeUnknown. En signert, men ugyldig refresh-ID-token gir ny autentisering, ikke gjentatt tokenrequest.
 
-En kjørbar iOS/macOS-app finnes i [Examples/AuthExample](Examples/AuthExample/README.md). [Releaseveiledningen](Docs/Release.md) beskriver versjonering, privat dependency-tilgang, backendkontrakt og live verifikasjon. Ingen leverandøravtaler, GitHub secrets eller produksjonstjenester er opprettet av pakken.
+En kjørbar iOS/macOS-app finnes i [Examples/AuthExample](Examples/AuthExample/README.md). [Releaseveiledningen](Docs/Release.md) beskriver versjonering, backendkontrakt og live verifikasjon. Ingen leverandøravtaler, secrets eller produksjonstjenester er opprettet av pakken.
 
 Keychain bruker eksplisitt Apples Data Protection Keychain på macOS, slik at accessible-attributtet faktisk gjelder også der. Apper må signeres med korrekt application identifier og Keychain-entitlements; eksempelappen viser dette oppsettet. Gamle development-credentials i legacy macOS-Keychain migreres ikke automatisk; bruk ny login. Reelle Keychain-integrasjonstester kjøres i den signerte eksempelappverten på begge plattformer, ikke den generiske Swift Package-testverten.
 
@@ -162,4 +162,6 @@ Denne utviklingsversjonen endrer AuthCredentialProvider fra struct til actor og 
 
 ## Repository og GitHub
 
-Se [GitHub-oppsett](Docs/GitHubSetup.md) for opplasting og CI-konfigurasjon, [bidragsveiledning](CONTRIBUTING.md) for vedlikehold og [sikkerhetsrutinen](SECURITY.md) for privat rapportering. Alle rettigheter tilhører Teisrud Development AS; se [LICENSE](LICENSE).
+Gjeldende offentlige API er versjonert som 0.1.0. Før 1.0 kan minorversjoner inneholde kildekodebrytende endringer i tråd med Semantic Versioning. En publisert pakkeversjon er ikke dokumentasjon på at en bestemt provider-, broker- eller backendintegrasjon er produksjonsgodkjent.
+
+Se [GitHub-oppsett](Docs/GitHubSetup.md) for repository- og CI-konfigurasjon, [bidragsveiledning](CONTRIBUTING.md) for vedlikehold og [sikkerhetsrutinen](SECURITY.md) for privat rapportering. Copyright © 2026 Teisrud Development AS. Alle rettigheter forbeholdt; se [LICENSE](LICENSE).

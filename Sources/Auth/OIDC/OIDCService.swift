@@ -62,7 +62,12 @@ actor OIDCService {
       let data = try await send(
         configuration.issuer.appendingPathComponent(".well-known/openid-configuration"),
         limit: 65536)
-      let json = try StrictJSON.object(data)
+      let json: [String: Any]
+      do {
+        json = try StrictJSON.object(data)
+      } catch {
+        throw AuthError.discovery
+      }
       guard json["issuer"] as? String == configuration.issuer.absoluteString,
         (json["response_types_supported"] as? [String])?.contains("code") == true,
         (json["code_challenge_methods_supported"] as? [String])?.contains("S256") == true,

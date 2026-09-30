@@ -15,8 +15,8 @@ Den komplette, kanoniske veiledningen ligger i [Auth.docc](../Sources/Auth/Auth.
 | [Samlet API-referanse](../Sources/Auth/Auth.docc/APIReference.md) | Alle public typer, properties, initializere, metoder og standardverdier |
 | [Testing og utgivelse](../Sources/Auth/Auth.docc/TestingAndRelease.md) | Testsuiter, reell Keychain, DocC-bygg, CI og live releasekrav |
 
-[ProviderSetup](ProviderSetup.md) beskriver konkret tjenesteoppsett. [Release](Release.md) beskriver privat dependency-tilgang, signering og backend-/releasekontrakt. [Eksempelappen](../Examples/AuthExample/README.md) viser faktisk iOS/macOS-integrasjon.
+[ProviderSetup](ProviderSetup.md) beskriver konkret tjenesteoppsett. [Release](Release.md) beskriver signering og backend-/releasekontrakt. [Eksempelappen](../Examples/AuthExample/README.md) viser faktisk iOS/macOS-integrasjon.
 
 Les .docc Markdown direkte på GitHub, eller bygg katalogen i Xcode for navigerbar dokumentasjon og symbolreferanser. Guides sine `<doc:...>`-lenker blir navigerbare i bygget DocC. Ingen genererte arkiver eller analyserapporter skal committes.
 
-[GitHub-oppsett](GitHubSetup.md) beskriver første opplasting, private dependencies, CI-secrets og repository-innstillinger.
+[GitHub-oppsett](GitHubSetup.md) beskriver offentlig distribusjon, CI og repository-innstillinger.

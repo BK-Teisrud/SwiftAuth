@@ -6,7 +6,7 @@ Opprett én AuthClient, gjenopprett lokal sesjon og bind Networking til riktig i
 
 Velg bibliotekproduktet `Auth` i appens Swift Package-avhengigheter. Lokal utvikling kan bruke mappen Auth i Xcode. Remote installasjon krever at Auth publiseres i et repository du har lesetilgang til; dokumentasjonen oppgir ikke en oppdiktet Auth-URL eller release-tag.
 
-Auths Package.swift peker til private SwiftNetworking på revisjon `54fa46cb140de470d6cffe6ba5c691d56e677298`. Hvis appen selv importerer Networking og oppretter HTTPClient, legg også Networking-produktet til app-targetet. Bruk samme godkjente dependency-revisjon. Ikke bygg inn GitHub-tokens i package-URL-er eller appen.
+Auths Package.swift peker til den eksakte offentlige SwiftNetworking-releasen `0.3.0`. Hvis appen selv importerer Networking og oppretter HTTPClient, legg også Networking-produktet til app-targetet. Bruk samme godkjente dependency-versjon. Ingen GitHub-token er nødvendig for å hente avhengigheten.
 
 ## Før kodeopprettelse
 

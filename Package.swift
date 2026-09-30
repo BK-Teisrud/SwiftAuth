@@ -8,7 +8,7 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/BK-Teisrud/SwiftNetworking.git",
-      revision: "54fa46cb140de470d6cffe6ba5c691d56e677298")
+      exact: "0.3.0")
   ],
   targets: [
     .target(

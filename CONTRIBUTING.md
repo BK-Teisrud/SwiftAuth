@@ -4,7 +4,7 @@ Auth er proprietær programvare fra Teisrud Development AS. Tilgang til reposito
 
 ## Utvikling
 
-Bruk Swift 6 og Xcode 26.2 som i CI. Pakken støtter iOS 17 og macOS 14. Du trenger lesetilgang til den private [SwiftNetworking-avhengigheten](https://github.com/BK-Teisrud/SwiftNetworking), låst i Package.swift. Bruk GitHub-/SSH-/credential manager-oppsettet på maskinen; legg aldri et token i URL, fil eller commit.
+Bruk Swift 6 og en Xcode-versjon som dekkes av CI. Pakken støtter iOS 17 og macOS 14. Den offentlige [SwiftNetworking-avhengigheten](https://github.com/BK-Teisrud/SwiftNetworking) er låst til en eksakt release i Package.swift og krever ingen credentials.
 
 Produksjonskode, tester og utviklingsverktøy skal være Swift. Apple-rammeverk og egen Networking-pakke er avhengighetene. Nødvendig YAML og prosjektkonfigurasjon er tillatt. Se [AGENTS.md](AGENTS.md) og [arkitekturen](Sources/Auth/Auth.docc/Architecture.md).
 

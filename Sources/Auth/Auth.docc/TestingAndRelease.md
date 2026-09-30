@@ -12,7 +12,7 @@ xcrun swift-format lint --strict --recursive Package.swift Sources Tests Example
 git diff --check
 ```
 
-Swift Testing er Apples testingbibliotek. Testene bruker syntetiske tokens og lokale fixtures, ikke providerkontoer. Package.swift og eksempelappen har kun egen Networking-avhengighet. Private dependency-fetch krever legitim Git-lesetilgang.
+Swift Testing er Apples testingbibliotek. Testene bruker syntetiske tokens og lokale fixtures, ikke providerkontoer. Package.swift og eksempelappen har kun den offentlige Networking-avhengigheten, låst til eksakt release.
 
 | Testsuite/fil | Dekning |
 | --- | --- |
@@ -63,7 +63,7 @@ Swift-kodeblokkene er enten hele declarations/imports eller snippets med eksplis
 
 ## CI
 
-ci.yml kjører macOS-pakketester, format, DocC-bygg med warnings-as-errors, iOS-pakketester, iOS-appvertens Keychain og eksempelappbygg på begge plattformer. Workflowen bruker egen Networking-revisjon fra lokal Git-mirror og krever NETWORKING_READ_TOKEN med minimal privat lesetilgang. Xcode-path og simulatornavn må finnes på runneren. Workflowfilen alene er ikke grønn CI.
+ci.yml kjører macOS-pakketester på minimum og gjeldende toolchain, format, DocC-bygg med warnings-as-errors, iOS-pakketester, iOS-appvertens Keychain og eksempelappbygg på begge plattformer. Networking hentes fra sin offentlige eksakte SemVer-release uten credentials. Xcode-path og simulatornavn må finnes på runneren. Workflowfilen alene er ikke grønn CI.
 
 macos-keychain.yml er manuell, på forhånd konfigurert self-hosted macOS-runner med label auth-keychain, faktisk development_team og sertifikat/profile. Den kjøres ikke automatisk på vilkårlige pull requests. Den oppretter ingen sertifikater eller secrets.
 
@@ -75,7 +75,7 @@ macos-keychain.yml er manuell, på forhånd konfigurert self-hosted macOS-runner
 4. Test faktisk backendvalidering av riktig/feil access-token og avvisning av ID-token som bearer.
 5. Test rotasjon, låst Keychain, network transitions, samlet timeout, tapt respons og interaktiv recovery.
 6. Test logout og kontobytte med gamle 401/200-responses, realtimekanaler, cacher og fil-/syncjobs.
-7. Kjør signert macOS-Keychain-test og få faktisk grønn CI med private dependency-rettigheter.
+7. Kjør signert macOS-Keychain-test og få faktisk grønn CI.
 8. Gjennomfør separat sikkerhetsreview av egen OIDC/JWS/parserkode.
 9. Publiser godkjent Auth-revisjon og SemVer-tag med kompatibel Networking-versjon/revisjon.
 
@@ -83,4 +83,4 @@ Ingen live provider-/backendintegrasjon er dokumentert som verifisert ennå. Det
 
 ## Versjonsendringer
 
-AuthCredentialProvider er nå actor og binder seg til første vellykkede credential-sesjon. Bytt provider/HTTPClient etter login/restore. Offentlige AuthClient-init er async throws og kan gi sessionAlreadyInUse. Før 1.0 kan breaking changes øke minor; etter 1.0 krever de major. Ikke anta en Auth-release/tag før den faktisk er publisert.
+AuthCredentialProvider er actor og binder seg til første vellykkede credential-sesjon. Bytt provider/HTTPClient etter login/restore. Offentlige AuthClient-init er async throws og kan gi sessionAlreadyInUse. Før 1.0 kan breaking changes øke minor; etter 1.0 krever de major. En publisert 0.x-release dokumenterer pakke-API-et, ikke live produksjonsgodkjenning av en bestemt provider eller backend.

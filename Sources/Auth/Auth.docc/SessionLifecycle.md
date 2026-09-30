@@ -1,87 +1,39 @@
-# Sesjon, refresh og logout
+# Session lifecycle
 
-Livssyklus og samtidighetskontrakt for AuthClient.
-
-## Opprettelse og eierskap
-
-Offentlige initializere er async throws, men starter ikke discovery eller login. Standardvarianten oppretter NativeOIDCAdapter, tar en lease og velger Keychain-lagring. Adaptervarianten bruker adapterens immutable konfigurasjon. Initial status er `restoring`.
-
-Del én klient mellom scener. Lease varer til klienten deinitialiseres/prosessen avsluttes, også etter logout. Ny API-klient krever ikke ny AuthClient. En annen levende koordinator med samme lagringsidentitet avvises; app extensions og delte access groups støttes ikke.
-
-## Offentlige tilstander
-
-| AuthState | Betydning | Apphandling |
-| --- | --- | --- |
-| restoring | Lokal lagring er ikke ferdig avklart, eller restore feilet. | Avvent/håndter restore-feilen; ikke anta manglende bruker. |
-| signedOut(problem:) | Ingen aktiv lokal sesjon; kan inneholde slette- eller loginfeil. | Vis appens innloggingsvalg eller lagringsfeil. |
-| signingIn | Interaktiv login pågår. | Vis fremdrift og tilby eksplisitt avbrudd. |
-| signedIn(identity, problem:) | Lokal identitet/sesjon finnes; credentialtilgang kan likevel være blokkert. | Håndter problem før API-bruk. Ingen serverrettigheter garanteres. |
-| reauthenticationRequired(identity?, reason:) | Ingen brukbar credentialvei uten ny login eller håndtering av årsaken. | Bruk reason/recoveryAction; identitet kan beholdes. |
-
-`refreshOutcomeUnknown` presenteres bevisst som signedIn med problem, fordi lokal identitet beholdes selv om refresh blokkeres. Avvist refresh og andre blokkerende refresh-feil gir reauthenticationRequired. Alle statusverdier er uten tokens.
+Auth separates local identity, sensitive credentials, interactive operations, and API-client lifetime.
 
 ## Restore
 
-1. Avvis restore når login, browserstopp eller delt refresh pågår.
-2. Bytt operasjonsgenerasjon og lokal sesjons-ID, tøm access-token og tokenfingeravtrykk.
-3. Hvis logout-markør finnes, fullfør Keychain-sletting og fjern markøren før load.
-4. Les StoredSession og kontroller versjon 1, issuer, subject og refresh-token.
-5. Gjenopprett identitet og eventuell refresh-karantene. Ingen nettverksrequest skjer her.
+``AuthClient/restoreSession()`` reads the durable session without opening a browser or refreshing over the network. It first completes any pending logout marker. A successful restore creates a new in-process session identity, so the application must construct a new ``AuthCredentialProvider`` and API client.
 
-Mangler Keychain-elementet, blir status signedOut. Låst Keychain eller ugyldige data gir eksplisitt feil og restoring. Etter slettefeil i samme klient er ny logout-retry nødvendig før restore; en ny klient/prosess bruker den varige markøren til å fullføre sletting.
+## Login
 
-## Login og avbrudd
+``AuthClient/login(choice:)`` is explicit and interactive. Only one interactive operation may run on a client. PKCE, state, nonce, callback checks, code exchange, signature validation, and claim validation complete before session state is published. The refresh token is persisted before the access token becomes available.
 
-Login krever et konfigurert valg og tilgjengelig lagring uten pending logout. Pågående refresh invalideres. Hvis credential kan ha vært sendt, beholdes konservativ karantene. En annen interaktiv login avvises med loginAlreadyInProgress.
+``AuthClient/cancelLogin()`` cancels browser presentation and invalidates late results. A failed or cancelled reauthentication preserves the prior state when that state remains meaningful.
 
-Et verifisert resultat installeres bare når operasjonsgenerasjon og login-ID fortsatt matcher. Ny refresh-token lagres før access-token/status publiseres. Hvis login ikke gir refresh-token, fjernes tidligere lagret sesjon og access-token brukes bare i minnet.
+## Access tokens and refresh
 
-Vellykket login gir ny sesjons-ID, også for samme bruker. Feilet eller avbrutt login beholder tidligere lokal sesjon når den finnes; et eksisterende krav om reauthenticationRequired oppheves ikke. Feil betyr derfor ikke alltid signedOut.
+``AuthClient/validAccessToken()`` returns an unexpired access token or shares one refresh task among concurrent callers. With a refresh token, early refresh begins at ten percent of the installed lifetime, capped at 60 seconds. Without a refresh token, the access token remains usable until its actual expiry.
 
-`cancelLogin()` gjør ingenting hvis klienten ikke har en aktiv login. Ellers invalideres resultatet før adapter/browser stoppes. Task-cancellation av login utløser også stopp. Sene resultater kan gi operationInvalidated; explicit cancellation og callbackavbrudd er ikke nødvendigvis samme feilkode.
+Cancellation by one waiter does not cancel a shared refresh needed by other callers. Logout and a new login invalidate the whole operation. Late results cannot install credentials after their generation has changed.
 
-## Access-token og refresh-margin
+Refresh preparation occurs before the durable in-flight marker is written. Once credential sending may begin, transport failure, timeout, process termination, or persistence failure can make rotation outcome unknown. Auth preserves identity but quarantines the credential and requires explicit login instead of risking blind token reuse.
 
-Med refresh-token beregnes margin ved installasjon som min(60 sekunder, 10 % av tokenets gjenværende levetid). Et token med 30 sekunder igjen får 3 sekunders margin. Uten refresh-token brukes et token frem til faktisk utløp. Utløpte tokens utleveres aldri.
+`invalid_grant` also requires a new login. An expired access token is never returned.
 
-Hvis token etterspørres under login/browserstopp, kastes loginAlreadyInProgress. Uten brukbart token og uten refresh-token kastes reauthenticationRequired. API-bruk starter aldri nettleserinnlogging.
+## Account changes
 
-## Én delt refresh
+Every successful restore or login creates a new session identity, even for the same issuer, subject, or token value. Session-bound providers reject delayed 401 recovery from an older session. Applications must still cancel old requests, reject late responses, and clear account-bound caches.
 
-```text
-Forberedelse/discovery
-  → kontroll av generasjon og cancellation
-  → lagre refreshInFlight = true
-  → én tokenrequest
-  → verifiser respons/identitet og eventuell ID-token-binding
-  → lagre rotert refresh-token eller behold legitimt manglende erstatning
-  → installer access-token og fullfør resultat atomisk i actor-turn
-```
+## Logout
 
-Alle samtidige tokenkall deler samme task. Én konsument som kanselleres får CancellationError uten å stoppe refresh for andre. Logout/ny login invaliderer hele operasjonen. refreshTimeout dekker hele refresh fra forberedelse til ferdig resultat; brukerens tid i login-browseren har ingen tilsvarende samlet frist.
+``AuthClient/logout()`` invalidates operations, clears memory, and deletes the Keychain record. Before deletion it writes an atomic credential-free marker in Application Support. A new process must finish deletion before restore or login when that marker remains.
 
-| Feilfase | Credential-policy |
-| --- | --- |
-| Før varig markering, for eksempel discovery eller Keychain-save | Ingen refresh sendes; nytt forsøk er tillatt. |
-| Etter mulig sending, timeout/tapt respons | refreshOutcomeUnknown, blokkert retry, markør beholdes over restart. |
-| invalid_grant | refreshRejected; permanent avvisning forsøkes lagret. |
-| Verifisert respons, lagring feiler | Access-token publiseres ikke; gammel diskcredential forblir i karantene. |
-| Suksess | Ny credential lagres før token utleveres; markering oppheves av ny record. |
+If Keychain deletion fails, in-memory state is signed out but durable credentials may remain. If both marker persistence and credential deletion fail, Auth reports ``AuthError/logoutPersistenceUnavailable``. The application must surface the failure and retry after storage becomes available.
 
-Appavslutning etter markering kan gi ukjent utfall selv hvis HTTP-requesten ennå ikke nådde serveren. Dette er et bevisst konservativt valg. Ikke slett markeringen manuelt eller retry gammel roterende tokenfamilie blindt.
+``AuthClient/logoutAtProvider()`` is a separate optional browser operation. It does not delete local state, promise revocation, or guarantee logout from an upstream Apple or Vipps account.
 
-## Lokal logout
+## State
 
-Logout endrer generasjon/sesjons-ID, kansellerer refresh og tømmer minne. En credential-fri, atomisk markør skrives før Keychain-sletting. Sletting forsøkes også når markørlagring feiler. Markøren fjernes etter vellykket sletting.
-
-Status er signedOut også når sletting feiler, men metoden kaster feilen. Diskcredentials kan da fortsatt finnes. Hvis både markering og sletting feiler, brukes logoutPersistenceUnavailable; ingen varig garanti kan gis når begge mekanismer er utilgjengelige. Gjenta logout når lagring er tilgjengelig. Ikke koble nettverksrevokering til nødvendigheten av lokal opprydding.
-
-## Providerlogout
-
-`logoutAtProvider()` bruker separat systembrowser, end_session_endpoint, post-logout callback og tilfeldig state. Verifisert ID-token brukes som hint bare når det finnes i minnet. Etter restart/lokal logout kan hint mangle. Tjenesten må da støtte client_id uten hint.
-
-Kjør providerlogout før lokal logout hvis hint kreves, og fullfør lokal logout også hvis providerlogout feiler. Providerlogout alene endrer ikke lokal AuthState eller credentials. Det garanterer ikke logout fra Apple/Vipps eller andre apper og er ikke tokenrevokering.
-
-## Kontobytte og data
-
-Opprett ny AuthCredentialProvider/HTTPClient etter vellykket login/restore. Kanseller egne gamle requests og forkast sene responses, også 200-responses. Stopp realtime og bytt brukeravhengige køer/cacher. Auth kan forhindre credential-replay på tvers av sesjoner, men kan ikke identifisere eller tømme appens brukerdata.
+``AuthState`` never contains tokens. `signedIn` means local identity is known; it does not prove backend authorization. The stable account key is issuer plus subject, never email or profile data.

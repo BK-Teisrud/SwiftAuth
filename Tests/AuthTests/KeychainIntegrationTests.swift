@@ -8,7 +8,8 @@ import Testing
   #if !AUTH_HOSTED_KEYCHAIN_TESTS
     @Test(
       .disabled(
-        "Requires the signed AuthExample app test host on macOS/iOS; executed by its test scheme."))
+        "Requires a signed consuming-app test host on macOS or iOS with AUTH_HOSTED_KEYCHAIN_TESTS enabled."
+      ))
   #else
     @Test
   #endif

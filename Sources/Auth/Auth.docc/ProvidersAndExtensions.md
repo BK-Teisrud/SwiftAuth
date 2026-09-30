@@ -1,78 +1,37 @@
-# Innloggingsmetoder og nye adaptere
+# Providers and extensions
 
-Utvid gjennom registrerte hosted connections eller en fullt validerende OIDC-adapter.
+Use hosted connections for sign-in methods behind the same broker. Implement a new ``AuthOIDCAdapter`` only when the OIDC service contract itself changes.
 
-## Apple, Vipps og OTP
+## Hosted providers
 
-Pakken viser tjenestens hosted login i ASWebAuthenticationSession. Den inneholder ingen direkte Apple/Vipps-SDK, SMS-sender eller e-postleverandør. Ingen passord/koder samles inn i appen.
+Apple, Vipps, email, and SMS are identity-service concerns. ``AuthLoginChoice/connection(_:)`` adds an exact provider-specific query parameter to the authorization request. It does not configure the provider, collect credentials, or verify that a connection exists.
 
-| Metode | Nødvendig oppsett | Auth-valg |
-| --- | --- | --- |
-| Apple | Apple-registrering og brokerens Apple-integrasjon | serviceSelection eller registrert connection |
-| Vipps | Leverandøravtale/registrering og faktisk brokerintegrasjon | Bare et navn som brokeren faktisk har konfigurert |
-| E-post OTP | Tjenestens levering, kodekontroll og rate limiting | Registrert e-post-connection |
-| SMS OTP | Tjenestens SMS-leverandør, kodekontroll og misbruksvern | Registrert SMS-connection |
+Applications must verify every enabled connection end to end against the real broker and protected API. Never claim provider support based only on compilation or synthetic token tests.
 
-```swift
-let choices: [AuthLoginChoice] = [
-  .serviceSelection,
-  .connection("registered-apple-connection"),
-  .connection("registered-email-connection"),
-  .connection("registered-sms-connection")
-]
-```
+## Adapter contract
 
-Connection-navn er plassholdere, ikke universelle standardverdier. Et Vipps-navn aktiverer ingen integration eller avtale. Tjenesten eier kodeutløp, engangsbruk, anti-enumeration, begrensning av forsøk, kontolinking og upstream-identitet. Det er ikke verifisert live støtte for noen av disse metodene i repositoryet.
+An adapter returns ``AuthTokenResponse`` only after validating protocol, signatures, and claims. It must:
 
-## Krav til medfølgende native adapter
+- use Authorization Code with PKCE for a public client;
+- validate callback scheme, host, path, state, issuer, and authorization errors;
+- validate JWS algorithm, key selection, signature, issuer, subject, audience, `azp`, expiry, issue time, optional `nbf`, nonce, and optional `at_hash`;
+- preserve verified subject, audience, nonce, and authentication-time bindings during refresh;
+- avoid automatic retry after a possibly sent rotating refresh token;
+- cooperate with task cancellation and reject late results;
+- redact credentials and provider payloads from errors and descriptions.
 
-Tjenesten må støtte code, PKCE S256, discovery og RS256-signerte ID-tokens, offentlige klienter uten secret og valgt resource-parameter. Native adapter sender ingen vilkårlige authorize-parametere og støtter ikke implicit/password/device grants, PAR, DPoP eller egne UI-er. En provider som trenger slike kontrakter er ikke automatisk kompatibel.
+Cryptographic primitives must come from Security or CryptoKit. Do not add a JWT library or provider SDK to bypass this contract.
 
-Discovery bygger `.well-known/openid-configuration` under konfigurert issuer-path. Issuer fra metadata/token må matche konfigurasjonen eksakt. Endepunkter må følge origin-policyen i <doc:Configuration>.
+## Browser boundary
 
-## AuthOIDCAdapter-kontrakten
+``AuthBrowserSession`` is injectable for deterministic tests. Production login should use ``SystemAuthBrowser`` and `ASWebAuthenticationSession`. Embedded web views are not supported. A browser implementation must finish a pending continuation exactly once and handle cancellation safely.
 
-Protocol er MainActor-isolert og Sendable. Den er en betrodd sikkerhetsgrense: AuthClient koordinerer lagring og generasjon, men utfører ikke adapterens kryptografiske validering på nytt.
+A shared `SystemAuthBrowser` permits one active operation. Give independently operating clients separate browser instances.
 
-| Medlem | Implementasjonens ansvar |
-| --- | --- |
-| configuration | Immutable og korrekt for issuer/client/resource som returnerte tokens tilhører. |
-| login(choice:) | Systembrowser, PKCE/state/nonce, callback og komplett signatur/claimkontroll før retur. |
-| cancelLogin() | Stopp egen browseroperasjon; sent callback må ikke installere noe. |
-| prepareRefresh() | Avklar forutsetninger uten å sende refresh-credential. Default er no-op; override ved nettverksforutsetninger. |
-| refresh(token:identity:nonce:binding:) | Én refresh-request, identitetsbinding, eventuell ID-tokenvalidering og riktig usikkerhetsklassifisering. |
-| logoutAtProvider() | Separat providerlogout; kast unsupportedProviderFeature hvis ikke støttet. Lokal logout eies fortsatt av AuthClient. |
+## Transport boundary
 
-Returner AuthTokenResponse med access-token, faktisk utløp, verifisert issuer/subject og eventuell refresh-token. Ved login skal original nonce og verifisert audience/auth_time-binding returneres når ID-token brukes. De må kontrolleres igjen ved refresh/restart. En legitimt manglende refresh-erstatning representeres som nil; tom streng er ikke en erstatning.
+`NativeOIDCAdapter` uses SwiftNetworking transport. A custom transport is trusted security infrastructure: it must preserve HTTPS, endpoint-origin, redirect, response-size, timeout, and cancellation behavior. It must not log authorization bodies or responses.
 
-Kode som bare dekoder JWT-payload er ikke en adapterimplementasjon. Bruk Security/CryptoKit til kryptografiske primitiver, ikke egen RSA/SHA-implementasjon. Ikke stol på algoritme eller ekstern nøkkel-URL fra tokenet.
+## Provider logout
 
-## Cancellation og usikkert utfall
-
-Adapteren må samarbeide med Task-cancellation og sjekke cancellation før credential-send og før resultat retur. Kjernen ignorerer sene resultater etter frist/operasjonsbytte, men kan ikke tvangsavslutte en tredjeparts async-implementasjon som aldri returnerer.
-
-Et definitivt avvist refresh-grant gir refreshRejected. Tapt respons/transportfeil etter mulig sending gir refreshOutcomeUnknown. Ikke maskér det som retrybar discovery-feil, og ikke retry roterende refresh-requests i adapteren.
-
-## Injiser browser og transport
-
-NativeOIDCAdapter kan opprettes med en AuthBrowserSession, HTTPTransport og Sendable klokke-closure. Dette gjør fixturetester mulig uten reelle tjenester. Hver uavhengig klient bør ha egen browserinstans; SystemAuthBrowser støtter én browseroperasjon og cancellation gjelder den instansen.
-
-```swift
-@MainActor
-func makeCustomTransportClient(
-  config: AuthConfiguration,
-  browser: any AuthBrowserSession,
-  transport: any HTTPTransport
-) async throws -> AuthClient {
-  let adapter = NativeOIDCAdapter(
-    configuration: config, browser: browser, transport: transport
-  )
-  return try await AuthClient(adapter: adapter)
-}
-```
-
-Snippetet forutsetter import Auth og Networking. Transport må respektere HTTPS/tillitspolicy, reject-redirects, maksimal responsstørrelse og ingen credential-cache. Klokken skal være stabil og realistisk; biblioteket har ingen clock skew/leeway.
-
-## Valider en ny adapter
-
-Test faktiske signaturer, feil issuer/sub/aud/azp/nonce/utløp, callbackstate, duplikate felter, roterte keys og begge refreshvarianter med/uten ID-token. Test requesten på wire-nivå, ikke bare et mock-resultat. Gjennomfør deretter live staging med registrerte callbacks og faktisk beskyttet API. Se <doc:TestingAndRelease>.
+Provider logout requires discovered `end_session_endpoint` and a registered post-logout redirect URI. A verified ID-token hint exists only in memory. Local logout is separate and must not depend on remote availability.

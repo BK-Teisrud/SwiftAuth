@@ -3,17 +3,17 @@ import Foundation
 
 /// Explicit provider connection choices; the service owns passwordless OTP and identity-provider flows.
 public enum AuthLoginChoice: Sendable, Equatable {
-  /// Lar OIDC-tjenesten vise sine konfigurerte innloggingsmetoder.
+  /// Lets the OIDC service present its configured sign-in methods.
   case serviceSelection
-  /// Velger tjenestens eksakte connection-navn. Navnet oppretter ingen Apple-, Vipps- eller OTP-integrasjon.
+  /// Selects the service's exact connection name. The name does not create an Apple, Vipps, or OTP integration.
   case connection(String)
 }
 
 /// Provider-specific resource selection is explicit; an audience parameter is not assumed to be universal OAuth.
 public enum AuthAPIResource: Sendable, Equatable {
-  /// Sender den ikke-tomme API-identifikatoren som leverandørparameteren `audience`.
+  /// Sends the nonempty API identifier as the provider-specific `audience` parameter.
   case auth0Audience(String)
-  /// Sender ressursidentifikatoren som OAuth-parameteren `resource`. URL-en identifiserer ressursen; den er ikke et HTTP-endepunkt.
+  /// Sends the resource identifier as the OAuth `resource` parameter. The URL identifies a resource, not an HTTP endpoint.
   case oauthResource(URL)
 
   var storageIdentity: [String] {
@@ -26,35 +26,35 @@ public enum AuthAPIResource: Sendable, Equatable {
 
 /// One public OIDC client and one API resource. No client-secret support.
 public struct AuthConfiguration: Sendable, Equatable {
-  /// OIDC-utstederens eksakte HTTPS-URL uten brukerinformasjon, query eller fragment.
+  /// The OIDC issuer's exact HTTPS URL without user information, query, or fragment.
   public let issuer: URL
-  /// Offentlig klient-ID registrert hos utstederen. Ingen klienthemmelighet skal ligge i appen.
+  /// The public client ID registered with the issuer. The application must not contain a client secret.
   public let clientID: String
-  /// Registrert login-callback. Custom scheme støttes fra minimumsversjonen; HTTPS krever iOS 17.4 eller macOS 14.4.
+  /// The registered login callback. Custom schemes work on the minimum platforms; HTTPS requires iOS 17.4 or macOS 14.4.
   public let redirectURI: URL
-  /// Samlet frist i sekunder for forberedelse, refresh, validering og lagring; standard 60, gyldig intervall større enn 0 til og med 3600.
+  /// The total deadline in seconds for preparation, refresh, validation, and persistence; defaults to 60 and must be greater than 0 and at most 3600.
   public let refreshTimeout: TimeInterval
-  /// Unike OAuth-scopes. Må inneholde `openid`; standard er `openid` og `offline_access`.
+  /// Unique OAuth scopes. Must contain `openid`; defaults to `openid` and `offline_access`.
   public let scopes: [String]
-  /// Én eksplisitt API-ressurs som også inngår i Keychain-isolasjonen.
+  /// One explicit API resource that also participates in Keychain isolation.
   public let apiResource: AuthAPIResource
-  /// Registrert callback for separat utlogging hos leverandøren; `nil` deaktiverer denne funksjonen.
+  /// The registered callback for separate provider logout; `nil` disables that feature.
   public let postLogoutRedirectURI: URL?
-  /// App- og miljøidentifikator, eksempelvis `no.firma.app.production`. Inngår i hash for lagring og sesjonslås.
+  /// An application and environment identifier such as `com.example.app.production`; included in storage and session-lock hashing.
   public let keychainNamespace: String
-  /// Tillatte valg ved eksplisitt login. Standard er bare tjenestens egen metodevelger.
+  /// Choices allowed for explicit login. Defaults to the service's own method selection.
   public let loginChoices: [AuthLoginChoice]
-  /// Ber systemnettleseren om en midlertidig nettlesersesjon. Standard `false`; dette er ikke en garanti for leverandørutlogging.
+  /// Requests an ephemeral system-browser session. Defaults to `false`; this does not guarantee provider logout.
   public let ephemeralBrowserSession: Bool
-  /// Ekstra eksplisitte HTTPS-origins for discovery-endepunkter. Utstederens origin er alltid tillatt; standard er ingen ekstra.
+  /// Additional explicit HTTPS origins for discovery endpoints. The issuer origin is always allowed; defaults to none.
   public let trustedEndpointOrigins: [URL]
-  /// Ekstra tillatte `aud`-verdier i ID-tokenet. Klient-ID må fortsatt være inkludert; standard er ingen ekstra.
+  /// Additional allowed ID-token `aud` values. The client ID must still be present; defaults to none.
   public let trustedIDTokenAudiences: [String]
 
-  /// Oppretter og validerer en konfigurasjon for én offentlig OIDC-klient og API-ressurs.
+  /// Creates and validates a configuration for one public OIDC client and API resource.
   ///
-  /// Se <doc:Configuration> for alle standardverdier, URL-regler og lagringsidentitet.
-  /// - Throws: `AuthError.invalidConfiguration` dersom feltene eller callback-støtten er ugyldige.
+  /// See <doc:Configuration> for defaults, URL rules, and storage identity.
+  /// - Throws: `AuthError.invalidConfiguration` when fields or callback support are invalid.
   public init(
     issuer: URL, clientID: String, redirectURI: URL,
     scopes: [String] = ["openid", "offline_access"], apiResource: AuthAPIResource,

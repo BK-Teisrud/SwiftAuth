@@ -2,11 +2,11 @@ import Foundation
 
 /// Verified claims that must remain bound to the original authentication across refresh and restart.
 public struct AuthIDTokenBinding: Codable, Sendable, Equatable {
-  /// Sortert liste med verifiserte ID-token-audiences som skal bevares gjennom refresh og restart.
+  /// Sorted verified ID-token audiences preserved across refresh and restart.
   public let audiences: [String]
-  /// Opprinnelig verifisert `auth_time` i sekunder siden epoch, dersom claimet var til stede.
+  /// The originally verified `auth_time` in seconds since the epoch, when the claim was present.
   public let authenticationTime: Double?
-  /// Oppretter bindingsverdi og sorterer audiences. Utfører ingen kryptografisk validering.
+  /// Creates a binding and sorts audiences. Performs no cryptographic validation.
   public init(audiences: [String], authenticationTime: Double? = nil) {
     self.audiences = audiences.sorted()
     self.authenticationTime = authenticationTime
@@ -15,21 +15,21 @@ public struct AuthIDTokenBinding: Codable, Sendable, Equatable {
 
 /// Sensitive adapter output, never exposed by AuthState. Only return credentials after complete OIDC validation.
 public struct AuthTokenResponse: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
-  /// Identitet fra fullstendig verifisert ID-token eller bevart refresh-identitet.
+  /// Identity from a fully verified ID token or preserved refresh identity.
   public let identity: AuthIdentity
-  /// Sensitivt bearer-token for konfigurert API; skal aldri logges.
+  /// Sensitive bearer token for the configured API; never log this value.
   public let accessToken: String
-  /// Absolutt utløp beregnet fra responsens levetid. Klienten krever en dato i fremtiden.
+  /// Absolute expiry calculated from response lifetime. The client requires a future date.
   public let expiresAt: Date
-  /// Sensitivt refresh-token. Ved refresh betyr `nil` at eksisterende token beholdes; ved login betyr det ingen lagret refresh.
+  /// Sensitive refresh token. On refresh, `nil` preserves the existing token; on login, it means no refresh is stored.
   public let refreshToken: String?
-  /// Opprinnelig tilfeldig OIDC-nonce som lagres for senere validering av refresh-ID-token.
+  /// Original random OIDC nonce persisted for later refresh ID-token validation.
   public let loginNonce: String?
-  /// Verifiserte audiences og autentiseringstid for binding på tvers av refresh og restart.
+  /// Verified audiences and authentication time bound across refresh and restart.
   public let idTokenBinding: AuthIDTokenBinding?
-  /// Oppretter sensitiv adapterrespons. Verifiser protokoll, signatur og claims før konstruksjon.
+  /// Creates sensitive adapter output. Validate protocol, signature, and claims before construction.
   ///
-  /// `refreshToken` må oppgis eksplisitt, eventuelt som `nil`. Nonce og binding har standard `nil`; native-adapteren fyller dem fra verifisert login.
+  /// Pass `refreshToken` explicitly, including `nil`. Nonce and binding default to `nil`; the native adapter supplies them after verified login.
   public init(
     identity: AuthIdentity, accessToken: String, expiresAt: Date, refreshToken: String?,
     loginNonce: String? = nil, idTokenBinding: AuthIDTokenBinding? = nil
@@ -41,34 +41,34 @@ public struct AuthTokenResponse: Sendable, CustomStringConvertible, CustomDebugS
     self.loginNonce = loginNonce
     self.idTokenBinding = idTokenBinding
   }
-  /// Redigert beskrivelse som aldri inkluderer identitet eller credentials.
+  /// A redacted description that never includes identity or credentials.
   public var description: String { "AuthTokenResponse(<REDACTED>)" }
-  /// Samme redigerte verdi som ``description``; inneholder aldri tokens.
+  /// The same redacted value as ``description``; never contains tokens.
   public var debugDescription: String { description }
 }
 
 /// Provider boundary. New adapters must validate discovery, PKCE, state, nonce, signature and OIDC claims. Use Apple cryptographic APIs.
 /// Never return decoded-but-unverified ID-token identity. Never automatically retry rotating refresh requests.
 @MainActor public protocol AuthOIDCAdapter: Sendable {
-  /// Uforanderlig klientkonfigurasjon som også bestemmer sesjonens lagringsidentitet.
+  /// Immutable client configuration that also determines the session's storage identity.
   var configuration: AuthConfiguration { get }
-  /// Utfører eksplisitt login og returnerer bare fullstendig verifisert resultat. Ingen standard for metodevalget i protokollen.
+  /// Performs explicit login and returns only fully verified output. The protocol has no default login choice.
   func login(choice: AuthLoginChoice) async throws -> AuthTokenResponse
-  /// Avbryter nettleseroperasjon og ugyldiggjør sene resultater uten å slette klientens lokale sesjon.
+  /// Cancels browser work and invalidates late results without deleting the client's local session.
   func cancelLogin() async
-  /// Forbereder eksempelvis discovery uten å sende refresh-token. Feil her kan forsøkes igjen uten rotasjonskarantene.
+  /// Prepares work such as discovery without sending the refresh token. Failures here may be retried without rotation quarantine.
   func prepareRefresh() async throws
-  /// Sender refresh-token nøyaktig én gang og validerer resultatet mot opprinnelig identitet, nonce og binding.
+  /// Sends the refresh token exactly once and validates output against the original identity, nonce, and binding.
   ///
-  /// Ingen automatisk retry ved ukjent rotasjonsresultat. Samarbeid med task-kansellering; se <doc:ProvidersAndExtensions>.
+  /// Never retries an unknown rotation outcome automatically. Cooperate with task cancellation; see <doc:ProvidersAndExtensions>.
   func refresh(token: String, identity: AuthIdentity, nonce: String?, binding: AuthIDTokenBinding?)
     async throws
     -> AuthTokenResponse
-  /// Utfører separat leverandørutlogging. Manglende støtte skal gi `unsupportedProviderFeature`.
+  /// Performs separate provider logout. Missing support must produce `unsupportedProviderFeature`.
   func logoutAtProvider() async throws
 }
 
 extension AuthOIDCAdapter {
-  /// Standardimplementasjon uten arbeid for adaptere som ikke trenger separat refresh-forberedelse.
+  /// A no-op default for adapters that need no separate refresh preparation.
   public func prepareRefresh() async throws {}
 }

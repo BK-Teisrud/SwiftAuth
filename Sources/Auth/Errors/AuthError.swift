@@ -2,63 +2,63 @@ import Foundation
 
 /// Safe, structured errors. Provider descriptions, URLs and credentials are never retained here.
 public enum AuthError: Error, Sendable, Equatable {
-  /// En annen levende klient eller prosess eier samme lagringsidentitet.
+  /// Another live client or process owns the same storage identity.
   case sessionAlreadyInUse
-  /// Konfigurasjonen bryter valideringsreglene; må korrigeres før bruk.
+  /// Configuration violates validation rules and must be corrected before use.
   case invalidConfiguration
-  /// Nettverket var utilgjengelig eller refresh-forberedelsen nådde tidsfristen før credentials ble sendt.
+  /// The network was unavailable or refresh preparation timed out before credentials were sent.
   case networkUnavailable
-  /// Tjenesten returnerte en midlertidig serverfeil før en trygg retry er utelukket.
+  /// The service returned a temporary server failure before a safe retry was ruled out.
   case serviceUnavailable
-  /// Tjenesten avviste innlogging; inneholder ingen rå leverandørbeskrivelse.
+  /// The service rejected login; contains no raw provider description.
   case providerRejected
-  /// Discovery, metadata eller endpoint-tillit kunne ikke valideres.
+  /// Discovery, metadata, or endpoint trust could not be validated.
   case discovery
-  /// Systemnettleseren kunne ikke presenteres eller fullføre som forventet.
+  /// The system browser could not be presented or completed as expected.
   case browserPresentation
-  /// Interaktiv autentisering ble avbrutt av bruker eller klient.
+  /// Interactive authentication was cancelled by the user or client.
   case cancelled
-  /// En konkurrerende interaktiv operasjon, nettleserstopp eller uforenlig sesjonsoperasjon pågår.
+  /// A competing interactive operation, browser shutdown, or incompatible session operation is in progress.
   case loginAlreadyInProgress
-  /// Callback-URL, state, issuer eller autorisasjonsresultat var ugyldig.
+  /// The callback URL, state, issuer, or authorization result was invalid.
   case callback
-  /// Tokenresponsen eller kodeutvekslingen er ugyldig; ingen rå tokenrespons beholdes i feilen.
+  /// The token response or code exchange was invalid; no raw token response is retained.
   case tokenExchange
-  /// ID-token, signatur, nøkkel eller claims kunne ikke verifiseres.
+  /// An ID token, signature, key, or claim could not be verified.
   case idTokenValidation
-  /// Keychain-operasjonen feilet med eksplisitt OSStatus; rå credentials inkluderes aldri.
+  /// A Keychain operation failed with an explicit OSStatus; raw credentials are never included.
   case keychain(status: Int32)
-  /// Både den varige logout-markøren og sletting feilet. Minnet er tømt, men diskdata kan fortsatt finnes.
+  /// Both the durable logout marker and deletion failed. Memory is cleared, but data may remain on disk.
   case logoutPersistenceUnavailable
-  /// Sesjonsformat, lagringsoperasjon, filmarkør eller lås kunne ikke håndteres sikkert.
+  /// Session format, persistence, file marker, or locking could not be handled safely.
   case storage
-  /// Tjenesten avviste refresh, eksempelvis med invalid_grant. Ny eksplisitt login kreves.
+  /// The service rejected refresh, for example with `invalid_grant`. New explicit login is required.
   case refreshRejected
-  /// Refresh kan ha rotert hos tjenesten uten et kjent lokalt resultat. Tokenet settes i vedvarende karantene.
+  /// Refresh may have rotated at the service without a known local result. The token is quarantined durably.
   case refreshOutcomeUnknown
-  /// Sesjonen trenger eksplisitt login, eksempelvis fordi et utløpt token ikke kan fornyes.
+  /// The session needs explicit login, for example because an expired token cannot be refreshed.
   case reauthenticationRequired
-  /// Operasjonen tilhører en tidligere sesjon eller et ukjent token. Ikke bruk feilen til å logge ut en ny bruker.
+  /// The operation belongs to an earlier session or unknown token. Do not use this error to log out a newer user.
   case operationInvalidated
-  /// Påkrevd funksjon eller callback-støtte finnes ikke i tjenesten eller på plattformen.
+  /// A required feature or callback capability is unavailable from the service or platform.
   case unsupportedProviderFeature
 }
 
 /// Suggested UI action; a retry never overrides quarantine of an uncertain rotating refresh.
 public enum AuthRecoveryAction: Sendable, Equatable {
-  /// Foreslå et nytt eksplisitt forsøk når årsaken er løst. Overstyrer aldri refresh-karantene.
+  /// Suggest another explicit attempt after the cause is resolved. Never overrides refresh quarantine.
   case retry
-  /// Tilby ny eksplisitt innlogging. API-tokenanskaffelse starter ikke nettleseren.
+  /// Offer a new explicit login. API token acquisition does not open the browser.
   case signIn
-  /// Korriger app- eller tjenestekonfigurasjon før nytt forsøk.
+  /// Correct application or service configuration before trying again.
   case configure
-  /// Vent på tilgjengelig lagring eller rett lagringsfeilen; prøv ufullført lokal logout igjen.
+  /// Wait for storage or repair the storage failure, then retry incomplete local logout.
   case waitForStorage
-  /// Ingen automatisk handling. Håndter kansellering, konkurranse eller tidligere sesjon i appens flyt.
+  /// No automatic action. Handle cancellation, concurrency, or stale-session work in the application flow.
   case none
 }
 extension AuthError {
-  /// Anbefalt app-/UI-handling for denne feilen. Verdien utfører ingen retry, logout eller innlogging. Se <doc:ErrorsAndRecovery>.
+  /// Recommended application or UI action. The value performs no retry, logout, or login. See <doc:ErrorsAndRecovery>.
   public var recoveryAction: AuthRecoveryAction {
     switch self {
     case .networkUnavailable, .serviceUnavailable, .browserPresentation: return .retry

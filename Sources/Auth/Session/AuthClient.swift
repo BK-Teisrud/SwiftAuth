@@ -17,13 +17,13 @@ public actor AuthClient {
   private var lease: SessionLease?
   private var deletionPending = false
   private var observers: [UUID: AsyncStream<AuthState>.Continuation] = [:]
-  /// Siste tokenfrie sesjonstilstand. Les med `await` utenfor aktøren, eller abonner med ``states()``.
+  /// Latest token-free session state. Read with `await` outside the actor or subscribe with ``states()``.
   public private(set) var state: AuthState = .restoring
 
-  /// Oppretter standardklienten med ``NativeOIDCAdapter`` og eksklusiv lås for lagringsidentiteten.
+  /// Creates the standard client with ``NativeOIDCAdapter`` and an exclusive lock for the storage identity.
   ///
-  /// Konstruksjon leser ikke Keychain; kall ``restoreSession()`` eksplisitt.
-  /// - Throws: Konfigurasjons-, lagrings- eller `sessionAlreadyInUse`-feil.
+  /// Construction does not read Keychain; call ``restoreSession()`` explicitly.
+  /// - Throws: Configuration, storage, or `sessionAlreadyInUse` errors.
   public init(configuration: AuthConfiguration, browser: any AuthBrowserSession) async throws {
     self.configuration = configuration
     self.service = await NativeOIDCAdapter(configuration: configuration, browser: browser)
@@ -32,10 +32,10 @@ public actor AuthClient {
     self.now = { Date() }
   }
 
-  /// Oppretter klienten med en betrodd adapter og eksklusiv lagringslås basert på adapterens uforanderlige konfigurasjon.
+  /// Creates a client with a trusted adapter and an exclusive storage lock based on the adapter's immutable configuration.
   ///
-  /// Adapteren må returnere fullstendig verifiserte resultater. Se <doc:ProvidersAndExtensions>.
-  /// - Throws: Lagringsfeil eller `AuthError.sessionAlreadyInUse`.
+  /// The adapter must return fully verified output. See <doc:ProvidersAndExtensions>.
+  /// - Throws: Storage errors or `AuthError.sessionAlreadyInUse`.
   public init(adapter: any AuthOIDCAdapter) async throws {
     let configuration = await adapter.configuration
     self.configuration = configuration
@@ -55,10 +55,10 @@ public actor AuthClient {
     self.now = now
   }
 
-  /// Abonnerer på tilstandsendringer og leverer gjeldende tilstand med én gang.
+  /// Subscribes to state changes and immediately emits the current state.
   ///
-  /// Bare siste verdi bufres for trege konsumenter. Avslutt abonnementets task når observasjonen ikke lenger trengs.
-  /// - Returns: En strøm uten tokens eller nettverksoperasjoner.
+  /// Only the latest value is buffered for slow consumers. Cancel the subscription task when observation is no longer needed.
+  /// - Returns: A stream containing no tokens or network operations.
   public func states() -> AsyncStream<AuthState> {
     let id = UUID()
     let (stream, continuation) = AsyncStream<AuthState>.makeStream(
@@ -74,10 +74,10 @@ public actor AuthClient {
     for continuation in observers.values { continuation.yield(value) }
   }
 
-  /// Gjenoppretter identitet, refresh-token og karantenestatus fra lokal lagring uten nettverk.
+  /// Restores identity, refresh token, and quarantine state from local storage without network access.
   ///
-  /// Fullfører eventuell tidligere logout-markør før lesing. En gjenoppretting gir ny sesjonsidentitet; opprett ny API-klient.
-  /// - Throws: Lagringsfeil, pågående operasjon eller tidligere ufullført logout. Se <doc:SessionLifecycle>.
+  /// Completes any previous logout marker before reading. Restore creates a new session identity; create a new API client.
+  /// - Throws: Storage failure, a conflicting operation, or incomplete earlier logout. See <doc:SessionLifecycle>.
   public func restoreSession() throws {
     guard loginID == nil, !browserStopping, refreshTask == nil else {
       throw AuthError.operationInvalidated
@@ -111,10 +111,10 @@ public actor AuthClient {
     }
   }
 
-  /// Starter eksplisitt innlogging med et konfigurert metodevalg; standard er `.serviceSelection`.
+  /// Starts explicit login with a configured choice; defaults to `.serviceSelection`.
   ///
-  /// Lagrer refresh-token før publisering. Suksess oppretter ny sesjonsidentitet; feil og kansellering bevarer korrekt tidligere tilstand.
-  /// - Throws: Adapter-, lagrings- eller `loginAlreadyInProgress`-feil. Opprett ny credential provider og HTTPClient ved suksess.
+  /// Persists the refresh token before publication. Success creates a new session identity; failure and cancellation preserve the correct prior state.
+  /// - Throws: Adapter, storage, or `loginAlreadyInProgress` errors. Create a new credential provider and HTTPClient after success.
   public func login(choice: AuthLoginChoice = .serviceSelection) async throws {
     guard loginID == nil, !browserStopping else { throw AuthError.loginAlreadyInProgress }
     guard configuration.loginChoices.contains(choice) else {
@@ -168,9 +168,9 @@ public actor AuthClient {
     }
   }
 
-  /// Avbryter pågående interaktiv login og venter på adapterens kansellering. Uten aktiv login skjer ingenting.
+  /// Cancels active interactive login and waits for adapter cancellation. Does nothing without an active login.
   ///
-  /// Tilstanden går tilbake til forrige identitet og eventuell eksisterende refresh-karantene.
+  /// State returns to the previous identity and any existing refresh quarantine.
   public func cancelLogin() async { if let id = loginID { await cancelLogin(operation: id) } }
   private func cancelLogin(operation: UUID) async {
     guard loginID == operation else { return }
@@ -182,12 +182,12 @@ public actor AuthClient {
     browserStopsInFlight -= 1
   }
 
-  /// Returnerer et gyldig access-token fra minnet eller én delt refresh-operasjon.
+  /// Returns a valid access token from memory or one shared refresh operation.
   ///
-  /// Åpner aldri nettleser. Tidlig refresh-margin er maksimalt 60 sekunder og 10 prosent av levetiden.
-  /// Kansellering stopper bare denne ventende konsumenten. Ikke logg returverdien.
-  /// - Returns: Et sensitivt bearer-token.
-  /// - Throws: Sesjons-, refresh-, lagrings- eller kanselleringsfeil; se <doc:SessionLifecycle>.
+  /// Never opens the browser. Early refresh margin is at most 60 seconds and ten percent of token lifetime.
+  /// Cancellation stops only this waiting consumer. Never log the return value.
+  /// - Returns: A sensitive bearer token.
+  /// - Throws: Session, refresh, storage, or cancellation errors; see <doc:SessionLifecycle>.
   public func validAccessToken() async throws -> String {
     try Task.checkCancellation()
     guard loginID == nil, !browserStopping else { throw AuthError.loginAlreadyInProgress }
@@ -361,12 +361,12 @@ public actor AuthClient {
     }
   }
 
-  /// Håndterer avvisning av et token denne sesjonen tidligere har utlevert.
+  /// Handles rejection of a token previously issued by this session.
   ///
-  /// Et allerede erstattet token gjenbruker dagens token uten ekstra rotasjon. Ukjente token-fingeravtrykk avvises.
-  /// Bruk ``AuthCredentialProvider`` for å binde forsøk til samme sesjon også etter kontobytte.
-  /// - Returns: Gjeldende eller fornyet sensitivt access-token.
-  /// - Throws: `operationInvalidated` eller feil fra tokenanskaffelsen.
+  /// An already replaced token reuses the current token without another rotation. Unknown token fingerprints are rejected.
+  /// Use ``AuthCredentialProvider`` to bind attempts to the same session across account changes.
+  /// - Returns: The current or refreshed sensitive access token.
+  /// - Throws: `operationInvalidated` or a token-acquisition error.
   public func recover(rejectedToken: String) async throws -> String {
     guard issuedTokens.contains(tokenFingerprint(rejectedToken)) else {
       throw AuthError.operationInvalidated
@@ -378,10 +378,10 @@ public actor AuthClient {
     return try await validAccessToken()
   }
 
-  /// Tømmer minnet, ugyldiggjør operasjoner og sletter lokal sesjon med en varig logout-markør.
+  /// Clears memory, invalidates operations, and deletes the local session using a durable logout marker.
   ///
-  /// Ingen nettverksutlogging utføres. Ved slettingsfeil er minnet fortsatt tømt; prøv lokal logout på nytt før gjenoppretting.
-  /// - Throws: Keychain-/lagringsfeil, eller `logoutPersistenceUnavailable` dersom både markør og sletting feiler.
+  /// Performs no network logout. Memory remains cleared after deletion failure; retry local logout before restore.
+  /// - Throws: Keychain or storage errors, or `logoutPersistenceUnavailable` when both marker persistence and deletion fail.
   public func logout() async throws {
     generation &+= 1
     loginID = nil
@@ -409,10 +409,10 @@ public actor AuthClient {
     if let failure { throw failure }
   }
 
-  /// Åpner leverandørens separate logout i systemnettleseren uten å slette lokal sesjon.
+  /// Opens separate provider logout in the system browser without deleting the local session.
   ///
-  /// Kall deretter ``logout()`` også om leverandørutloggingen feiler. ID-token-hint finnes bare i adapterens minne.
-  /// - Throws: Adapterfeil, `loginAlreadyInProgress` eller `unsupportedProviderFeature`.
+  /// Call ``logout()`` afterward even if provider logout fails. An ID-token hint exists only in adapter memory.
+  /// - Throws: Adapter errors, `loginAlreadyInProgress`, or `unsupportedProviderFeature`.
   public func logoutAtProvider() async throws {
     guard loginID == nil, !browserStopping else { throw AuthError.loginAlreadyInProgress }
     do { try await service.logoutAtProvider() } catch {

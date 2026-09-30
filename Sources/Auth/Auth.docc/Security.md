@@ -1,75 +1,43 @@
-# Sikkerhet, protokoll og lagring
+# Security and privacy
 
-Kontroller som implementeres i pakken, og grenser som app og server må håndtere.
+Auth fails closed across protocol validation, endpoint trust, credential persistence, refresh rotation, and account changes.
 
-## Tjeneste- og klientmodell
+## OIDC and cryptography
 
-Appen er en offentlig OIDC-klient. Native adapter bruker Authorization Code + PKCE S256 i systembrowser og har ingen client-secret-støtte. Apple leverer SHA-256, kryptografisk tilfeldighet og RSA-verifisering; Auth vedlikeholder protokoll- og parserkontrollene. Dokumentasjonen er ikke en sikkerhetssertifisering.
+PKCE verifier, state, and nonce use `SecRandomCopyBytes`. SHA-256 uses CryptoKit. RSA signature verification uses `SecKeyVerifySignature`; Auth implements no cryptographic primitive.
 
-Standardgrunnlaget er [OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html), [Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html), [PKCE](https://www.rfc-editor.org/rfc/rfc7636) og [native app-flyt](https://www.rfc-editor.org/rfc/rfc8252). Tabellen nedenfor beskriver den konkrete implementasjonen, som bevisst støtter et avgrenset sett funksjoner.
+The current policy accepts only RS256 and RSA keys from 2048 through 8192 bits. It rejects `none`, unsupported algorithms, duplicate or ambiguous key identifiers, selected JWKs containing private material, unsupported critical headers, malformed base64url, duplicate JSON keys, oversized values, and signature failures.
 
-## Authorize og callback
+Validated claims include issuer, non-empty subject, audience, required `azp` rules, `exp`, `iat`, optional `nbf`, login nonce, and optional `at_hash`. There is no clock leeway. Refresh ID tokens are checked against the original subject, audience set, nonce, and optional authentication time.
 
-Verifier, state og nonce opprettes separat fra 32 tilfeldige bytes med SecRandomCopyBytes og canonical base64url uten padding. Challenge er SHA-256(verifier). Appen sender response_type=code, client_id, redirect_uri, scope, state, nonce, S256-felter og avtalt resource/connection.
+## Discovery and endpoints
 
-Callback har maks 16 KiB og må matche scheme/host/port/percent-encoded path. Fragment og credentials avvises. Alle dupliserte querynavn avvises; hvert felt må ha verdi. state må matche. Hvis iss finnes, må issuer matche. code og error kan ikke forekomme sammen. En ikke-tom error blir providerRejected; authorization code må være ikke-tom før exchange.
+Discovery must advertise authorization code flow, PKCE S256, and RS256. Endpoints require HTTPS, no embedded credentials, no fragments, and a trusted origin. Issuer origin is trusted by default; cross-origin endpoints require an explicit allowlist entry.
 
-En callback er ikke en innlogget identitet. Identitet utleveres først etter komplett tokenvalidering og generasjonskontroll.
+Static endpoint query values are preserved only when they do not collide with Auth-owned protocol fields. Redirect handling and response limits are enforced by the OIDC service and trusted transport boundary.
 
-## ID-token og JWK
+JWT, discovery, and token responses are limited to 64 KiB. JWKS is limited to 256 KiB. Positive `expires_in` is capped at one year.
 
-| Kontroll | Implementasjon |
-| --- | --- |
-| Format | Tre JWS-segmenter; canonical, unpadded base64url; ID-token høyst 64 KiB. |
-| Algoritme | Kun RS256. alg=none og andre algoritmer avvises. |
-| Header | Ikke-tom kid på høyst 256 bytes. crit, b64, jku og x5u avvises. |
-| Keyvalg | Akkurat én matching kid i issuerens JWKS. Tokenet velger ikke en ekstern key-URL. |
-| Keytype | RSA; alg mangler eller er RS256; use mangler eller er sig; eventuelle key_ops må inneholde verify. |
-| Privat keymateriale | Den valgte JWK-en kan ikke inneholde d, p, q, dp, dq eller qi. |
-| RSA-verdier | Canonical n/e, ingen leading-zero UInt. Modulus 2048–8192 bit med høy bit satt og odd verdi; exponent opptil fire bytes, odd og minst 3. |
-| Signatur | Apple SecKeyVerifySignature, PKCS#1 v1.5 SHA-256 over originale encoded segmenter. |
-| Identitet | Eksakt issuer, ikke-tom ASCII subject høyst 255 bytes. |
-| Audience | Client ID inngår; alle audiences tilhører eksplisitt tillitsliste; ingen duplikater. |
-| azp | Må være client ID når flere audiences finnes eller azp er til stede. |
-| Tid | Finite, ikke-negative NumericDates, ikke booleans. exp > nå; iat <= nå og iat < exp; eventuell nbf <= nå. |
-| Nonce | Påkrevd match ved login. Ved refresh kontrolleres eventuell nonce mot kjent original nonce. |
-| at_hash | Hvis til stede, SHA-256-basert hash av access-token må matche. |
-| Refresh-binding | Samme issuer/subject og originalt audience-sett; eventuell returnert auth_time må matche original binding. |
+## Storage
 
-Ingen klokkeleeway er aktiv. Original auth_time kan mangle i refresh-ID-token; hvis den returneres må den matche. Et ID-token kan legitimt mangle helt ved refresh, men kan ikke mangle ved førstegangs native login. En eldre lagret record uten audience-binding kan ikke godkjenne et nytt refresh-ID-token uten ny login.
+Only the refresh token, minimal issuer-plus-subject identity, original nonce and claim binding, refresh quarantine, and required metadata are persisted. Access and ID tokens are memory-only.
 
-## Responsgrenser og parsing
+Keychain accessibility is `WhenUnlockedThisDeviceOnly`; synchronization and shared access groups are disabled. Data Protection Keychain is requested explicitly on macOS. Availability errors do not mean that a record is absent. Keychain data may survive application removal.
 
-Discovery og tokenresponses begrenses til 64 KiB; JWKS til 256 KiB. Total tokenresponsegrense gjelder selv om en enkelt JWT har en høyere isolert maksimumsgrense. Access-token og eventuell refresh-token er ikke-tomme og høyst 16 KiB; token_type må være bearer. expires_in er finite, positiv, ikke boolean og høyst 31 536 000 sekunder. Utløpet beregnes fra tidspunktet før tokenrequesten, slik at svartiden ikke forlenger tokenets levetid.
+Logout uses an atomic credential-free marker before Keychain deletion. The marker blocks restore and login until deletion succeeds. No implementation can promise durable logout if both marker storage and Keychain deletion fail, so the failure remains explicit.
 
-Foundation parser JSON. StrictJSON avviser dessuten dupliserte feltnavn inklusive escaped stavemåter og scanner nesting på under 32 nivåer. JSON må være et objekt, ikke en root-array. Sensitive responser blir ikke en del av offentlig feilmelding.
+## Refresh rotation
 
-## HTTP og key-cache
+A durable in-flight marker is written immediately before the refresh credential may be sent. After that point, timeout, cancellation, process death, or persistence failure can produce an unknown server outcome. Auth quarantines the refresh token and requires login instead of attempting unsafe automatic reuse.
 
-Endpoint HTTPS/origin-policy kontrolleres før sending. Alle redirects avvises. Requests bruker reloadIgnoringLocalCacheData, Accept application/json, POST form-encoding ved tokenutveksling og transportoptions som forbyr caching. URLRequest har 30 sekunders request-timeout; koordinert refresh har i tillegg samlet refreshTimeout.
+## Account isolation
 
-Discovery/JWKS har fem minutters lokal TTL. JWKS_URI-endring tømmer cached keys. Ukjent kid henter JWKS på nytt én gang per valideringskall. Ingen tokenrequest gjentas for å hente keys. Samme-kid keyendring utløser ikke automatisk ekstra fetch etter signaturfeil; ny-kid rotasjon og TTL er den støttede cachekontrakten.
+Session generations reject late login and refresh results. Session-bound credential providers reject delayed 401 recovery across account changes. Applications remain responsible for cancelling old operations, partitioning caches, and dropping late responses.
 
-## Hva lagres
+## Sensitive data
 
-| Data | Sted/livsløp |
-| --- | --- |
-| Access-token | Kun klientminne til logout/restore/erstatning; ikke på disk. |
-| ID-token | Kun verifisert providerlogout-hint i adapterminne; ikke på disk. |
-| Refresh-token | Ett Keychain-element med minimal identitet/binding/karanteneflagg. |
-| Issuer/subject, original nonce, audiences/auth_time | Samme Keychain-record som refresh-token. |
-| SHA-256-tokenfingeravtrykk | Bounded minnehistorikk på høyst 256 for direkte rejected-token-håndtering. |
-| Logout-markør | Én credential-fri byte [1] i Application Support/TeisrudAuth med hashed servicefilnavn. |
-| Lease | Fil-lock og prosessregistrering; ingen credential/identitet i lockfil. |
+Auth has no diagnostic token logging. Errors do not retain raw provider bodies, URLs, authorization codes, PKCE values, tokens, or personal data. Integrating applications must apply the same rule to analytics, crash reporting, request logging, and test evidence.
 
-Keychain bruker generic password, account=session, hashed service, ingen synchronizable/iCloud, eksplisitt Data Protection Keychain og WhenUnlockedThisDeviceOnly. Ingen shared access groups støttes. Elementet kan overleve avinstallering; local logout må slette eksplisitt. Legacy macOS-Keychain migreres ikke automatisk.
+## Out of scope
 
-Credential-free markør skrives atomisk. Directory opprettes med 0700 og lockfile med 0600. På iOS har marker-directory/writes ingen file protection for å kunne uttrykke logout mens enheten er låst; de inneholder aldri tokens/identitet. Korrupte/uleselige markører feiler lukket. Fil-låsen holdes hele klientens levetid og unngår to koordinatorer for samme roterende credential i støttet container.
-
-## Server og appens grenser
-
-Backend må kontrollere API-tokenets issuer, audience, utløp og rettigheter via riktig JWT-/introspection-kontrakt. ID-token er ikke API-bearer. Appens signedIn-status kan ikke brukes som serverautorisasjon. Konto-linking, roller, revokering og kontosletting implementeres hos tjeneste/server.
-
-Auth tømmer ikke appcacher, jobbkøer eller OS-bakgrunnsoverføringer. Logout tilbakekaller ikke serverutstedte tokens. Appen må forkaste gamle responses og beskytte brukerdata ved kontobytte. Ikke logg callbacks, authorization-URL-er, request bodies, tokens eller persondata i analytics/crash metadata.
-
-Før produksjon kreves faktisk provider-/API-testing og en separat gjennomgang av egen protokollkode. Se <doc:TestingAndRelease>.
+Auth does not provide certificate pinning, token revocation, backend authorization, encrypted application databases, compromised-device protection, cross-application credential sharing, or provider-specific account-linking policy. Review those concerns in the integrating application and service.

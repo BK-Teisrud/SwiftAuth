@@ -4,7 +4,7 @@ import Networking
 /// Authorization Code + PKCE using Apple frameworks and this package's protocol implementation.
 /// RS256 is the sole allowed ID-token algorithm. Other algorithms fail closed.
 @MainActor public final class NativeOIDCAdapter: AuthOIDCAdapter {
-  /// Uforanderlig OIDC-konfigurasjon brukt til discovery, validering og ressursvalg.
+  /// Immutable OIDC configuration used for discovery, validation, and resource selection.
   public let configuration: AuthConfiguration
   private let browser: any AuthBrowserSession
   private let service: OIDCService
@@ -14,10 +14,10 @@ import Networking
   private var logoutHint: String?
   private var sessionGeneration: UInt64 = 0
   private var identityNonce: (identity: AuthIdentity, nonce: String)?
-  /// Oppretter Apple-basert Authorization Code + PKCE-adapter.
+  /// Creates an Apple-framework Authorization Code with PKCE adapter.
   ///
-  /// Transporten er som standard `URLSessionTransport`; en egendefinert transport må bevare redirect- og størrelsesbegrensninger.
-  /// `now` er klokkeinjeksjon for deterministiske tester, med `Date()` som standard. Se <doc:ProvidersAndExtensions>.
+  /// Transport defaults to `URLSessionTransport`; a custom transport must preserve redirect and size limits.
+  /// `now` injects a clock for deterministic tests and defaults to `Date()`. See <doc:ProvidersAndExtensions>.
   public init(
     configuration: AuthConfiguration, browser: any AuthBrowserSession,
     transport: any HTTPTransport = URLSessionTransport(),
@@ -29,11 +29,11 @@ import Networking
     self.now = now
   }
 
-  /// Utfører discovery, PKCE S256, state/nonce, systemnettleser, kodeutveksling og RS256-validering.
+  /// Performs discovery, PKCE S256, state and nonce, system-browser presentation, code exchange, and RS256 validation.
   ///
-  /// Metodevalget må oppgis. Parsing og signaturvalidering skjer i en egen service-aktør.
-  /// - Returns: Sensitivt, verifisert tokenresultat.
-  /// - Throws: Strukturerte discovery-, callback-, browser-, token- eller valideringsfeil.
+  /// A login choice is required. Parsing and signature validation run in a separate service actor.
+  /// - Returns: Sensitive, verified token output.
+  /// - Throws: Structured discovery, callback, browser, token, or validation errors.
   public func login(choice: AuthLoginChoice) async throws -> AuthTokenResponse {
     guard operationID == nil else { throw AuthError.loginAlreadyInProgress }
     guard configuration.loginChoices.contains(choice) else {
@@ -99,7 +99,7 @@ import Networking
     return result
   }
 
-  /// Avbryter nettleseren og ugyldiggjør sene resultater; tømmer adapterens nonce, logout-hint og forberedte metadata.
+  /// Cancels browser work and invalidates late results, clearing adapter nonce, logout hint, and prepared metadata.
   public func cancelLogin() {
     operationID = nil
     logoutHint = nil
@@ -109,17 +109,17 @@ import Networking
     browser.cancel()
   }
 
-  /// Henter eller gjenbruker discovery før klienten markerer refresh-token som sendt. Sender ingen refresh-credential.
+  /// Fetches or reuses discovery before the client marks the refresh token as sent. Sends no refresh credential.
   public func prepareRefresh() async throws {
     preparedRefreshMetadata = try await service.discover()
   }
 
-  /// Utfører én refresh-utveksling med opprinnelig identitet, nonce og ID-token-binding.
+  /// Performs one refresh exchange with the original identity, nonce, and ID-token binding.
   ///
-  /// `nonce` og `binding` har standard `nil` på denne konkrete metoden. Refresh-ID-token kan utelates av tjenesten; returnerte claims valideres.
-  /// Klientkoordinatoren eier deling, totalfrist og vedvarende karantene. Ikke bruk direkte som erstatning for ``AuthClient``.
-  /// - Returns: Verifisert sensitivt resultat; manglende nytt refresh-token betyr at det gamle beholdes.
-  /// - Throws: Refresh-, nettverks-, protokoll-, signatur- eller kanselleringsfeil.
+  /// `nonce` and `binding` default to `nil` on this concrete method. The service may omit a refresh ID token; returned claims are validated.
+  /// The client coordinator owns sharing, the total deadline, and durable quarantine. Do not use this as a substitute for ``AuthClient``.
+  /// - Returns: Verified sensitive output; a missing replacement refresh token preserves the old token.
+  /// - Throws: Refresh, network, protocol, signature, or cancellation errors.
   public func refresh(
     token refreshToken: String, identity: AuthIdentity, nonce originalNonce: String? = nil,
     binding: AuthIDTokenBinding? = nil
@@ -157,10 +157,10 @@ import Networking
     return result
   }
 
-  /// Utfører leverandørutlogging via validert end-session-endepunkt og konfigurert logout-callback.
+  /// Performs provider logout through a validated end-session endpoint and configured logout callback.
   ///
-  /// Eventuelt verifisert ID-token-hint finnes bare i minnet; lokal klientlagring slettes ikke.
-  /// - Throws: `unsupportedProviderFeature` eller browser-/callback-/discovery-feil.
+  /// An optional verified ID-token hint exists only in memory; local client storage is not deleted.
+  /// - Throws: `unsupportedProviderFeature` or browser, callback, or discovery errors.
   public func logoutAtProvider() async throws {
     guard operationID == nil else { throw AuthError.loginAlreadyInProgress }
     guard let redirect = configuration.postLogoutRedirectURI else {

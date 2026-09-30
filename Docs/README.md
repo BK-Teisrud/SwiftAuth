@@ -1,22 +1,33 @@
-# Dokumentasjon for Auth
+# Auth documentation
 
-Den komplette, kanoniske veiledningen ligger i [Auth.docc](../Sources/Auth/Auth.docc/Auth.md), og public API er kommentert direkte i Swift-koden for Xcode Quick Help/DocC.
+The canonical guide is the [Auth DocC catalog](../Sources/Auth/Auth.docc/Auth.md). Public Swift declarations also include Quick Help documentation.
 
-| Veiledning | Innhold |
+| Guide | Contents |
 | --- | --- |
-| [Kom i gang](../Sources/Auth/Auth.docc/GettingStarted.md) | Installasjon, appvindu, oppstart, login og første API-kall |
-| [Konfigurasjon](../Sources/Auth/Auth.docc/Configuration.md) | Alle parametere/defaults, scopes, resource, callbacks, origins og namespaces |
-| [Sesjonslivssyklus](../Sources/Auth/Auth.docc/SessionLifecycle.md) | Alle tilstander, restore, refresh, cancellation, rotasjon, kontobytte og logout |
-| [Networking og bruksområder](../Sources/Auth/Auth.docc/NetworkingIntegration.md) | REST/JSON, transfers, realtime, offline/bakgrunn og tredjeparts-API |
-| [Providers og utvidelse](../Sources/Auth/Auth.docc/ProvidersAndExtensions.md) | Apple/Vipps/OTP, hosted connections, adapter/browser/transport-kontrakter |
-| [Feil og recovery](../Sources/Auth/Auth.docc/ErrorsAndRecovery.md) | Alle AuthError-cases, handlinger og Networking-feilmapping |
-| [Sikkerhet](../Sources/Auth/Auth.docc/Security.md) | PKCE/JWS/JWK/claims, grensene, cache, Keychain og logout-markører |
-| [Arkitektur](../Sources/Auth/Auth.docc/Architecture.md) | Alle produksjonsfiler, actors, generation, persistence og vedlikehold |
-| [Samlet API-referanse](../Sources/Auth/Auth.docc/APIReference.md) | Alle public typer, properties, initializere, metoder og standardverdier |
-| [Testing og utgivelse](../Sources/Auth/Auth.docc/TestingAndRelease.md) | Testsuiter, reell Keychain, DocC-bygg, CI og live releasekrav |
+| [Getting started](../Sources/Auth/Auth.docc/GettingStarted.md) | Installation, application startup, login, and the first API request |
+| [Configuration](../Sources/Auth/Auth.docc/Configuration.md) | Defaults, scopes, resources, callbacks, trusted origins, and namespaces |
+| [Session lifecycle](../Sources/Auth/Auth.docc/SessionLifecycle.md) | Restore, login, refresh, cancellation, account changes, and logout |
+| [Networking integration](../Sources/Auth/Auth.docc/NetworkingIntegration.md) | Credential binding and protected requests |
+| [Providers and extensions](../Sources/Auth/Auth.docc/ProvidersAndExtensions.md) | Hosted connections and adapter, browser, and transport contracts |
+| [Errors and recovery](../Sources/Auth/Auth.docc/ErrorsAndRecovery.md) | `AuthError`, recovery actions, and Networking error mapping |
+| [Security](../Sources/Auth/Auth.docc/Security.md) | PKCE, JWS/JWK, claims, limits, Keychain, and logout markers |
+| [Architecture](../Sources/Auth/Auth.docc/Architecture.md) | Ownership, actors, persistence, and maintenance boundaries |
+| [Public API reference](../Sources/Auth/Auth.docc/APIReference.md) | Public types, properties, initializers, methods, and defaults |
+| [Testing and release](../Sources/Auth/Auth.docc/TestingAndRelease.md) | Test suites, signed integration checks, DocC, CI, and release gates |
 
-[ProviderSetup](ProviderSetup.md) beskriver konkret tjenesteoppsett. [Release](Release.md) beskriver signering og backend-/releasekontrakt. [Eksempelappen](../Examples/AuthExample/README.md) viser faktisk iOS/macOS-integrasjon.
+[Provider setup](ProviderSetup.md) describes the concrete service and application integration checklist.
 
-Les .docc Markdown direkte på GitHub, eller bygg katalogen i Xcode for navigerbar dokumentasjon og symbolreferanser. Guides sine `<doc:...>`-lenker blir navigerbare i bygget DocC. Ingen genererte arkiver eller analyserapporter skal committes.
+Read the Markdown directly on GitHub or build the DocC catalog in Xcode. Do not commit generated DocC archives, symbol graphs, DerivedData, test results, analysis reports, or internal findings.
 
-[GitHub-oppsett](GitHubSetup.md) beskriver offentlig distribusjon, CI og repository-innstillinger.
+## Documentation policy
+
+All public documentation, Swift documentation comments, issue templates, and pull-request templates must be written in English. Examples must use synthetic hosts, identifiers, and credentials. Documentation must distinguish package verification from unverified provider, backend, entitlement, and physical-device integration.
+
+The published Markdown set is intentionally limited to:
+
+- `README.md` and `SECURITY.md` at the repository root;
+- this index and `ProviderSetup.md` under `Docs`;
+- the canonical articles in `Sources/Auth/Auth.docc`;
+- GitHub issue and pull-request templates.
+
+Do not add standalone changelogs, roadmaps, contribution guides, release checklists, repository-setup notes, agent instructions, audit reports, migration reports, meeting notes, or duplicate handbooks. Put durable product guidance in the closest existing article, keep release evidence outside the repository, and use Git history and GitHub Releases for change history.

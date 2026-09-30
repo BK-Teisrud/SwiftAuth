@@ -13,7 +13,7 @@ SwiftNetworking er offentlig og krever ingen dependency-secret. Ikke legg tokens
 ## Repository-innstillinger
 
 - Actions tillater bare GitHub-eide actions og krever full commit-SHA. Workflow-token har read-only standardrettigheter og kan ikke godkjenne pull requests.
-- `main` krever pull request, lineær historikk, løste reviewtråder og grønne statuskontroller for begge macOS-toolchains og iOS. Force-push og sletting er blokkert.
+- `main` krever pull request, lineær historikk, løste reviewtråder og grønne statuskontroller for minimumsbygg, gjeldende macOS-testsuite og iOS. Force-push og sletting er blokkert.
 - Alle tags er beskyttet mot force-update og sletting.
 - Merge commits er deaktivert; squash og rebase er tillatt. Brancher slettes etter merge.
 - Dependabot security updates, dependency graph, secret scanning, push protection og private vulnerability reporting er aktivert.

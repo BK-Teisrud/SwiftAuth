@@ -23,7 +23,11 @@ jobs:
         with:
           persist-credentials: false
       - run: swift --version
-      - run: swift test
+      - if: matrix.xcode == '16.0'
+        name: Build with minimum Swift 6 toolchain
+        run: swift build
+      - if: matrix.xcode == '26.2'
+        run: swift test
       - if: matrix.xcode == '26.2'
         run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests Examples
       - if: matrix.xcode == '26.2'

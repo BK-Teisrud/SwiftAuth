@@ -63,7 +63,7 @@ Swift-kodeblokkene er enten hele declarations/imports eller snippets med eksplis
 
 ## CI
 
-ci.yml kjører macOS-pakketester på minimum og gjeldende toolchain, format, DocC-bygg med warnings-as-errors, iOS-pakketester, iOS-appvertens Keychain og eksempelappbygg på begge plattformer. Networking hentes fra sin offentlige eksakte SemVer-release uten credentials. Xcode-path og simulatornavn må finnes på runneren. Workflowfilen alene er ikke grønn CI.
+ci.yml bygger produksjonstargetet med minimum Swift 6.0 og kjører macOS-pakketestene med gjeldende toolchain, i tillegg til format, DocC-bygg med warnings-as-errors, iOS-pakketester, iOS-appvertens Keychain og eksempelappbygg på begge plattformer. Xcode 16.0s Swift Testing-makroer kan ikke kompilere suitens MainActor-baserte throws-closures, selv om produksjonstargetet bygger; dette skillet er eksplisitt i matrisen. Networking hentes fra sin offentlige eksakte SemVer-release uten credentials. Xcode-path og simulatornavn må finnes på runneren. Workflowfilen alene er ikke grønn CI.
 
 macos-keychain.yml er manuell, på forhånd konfigurert self-hosted macOS-runner med label auth-keychain, faktisk development_team og sertifikat/profile. Den kjøres ikke automatisk på vilkårlige pull requests. Den oppretter ingen sertifikater eller secrets.
 

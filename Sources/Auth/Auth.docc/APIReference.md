@@ -5,7 +5,7 @@ Use this page as a map of the public surface. The symbol pages generated from Sw
 ## Configuration
 
 - ``AuthConfiguration`` defines one issuer, public client, callback, API resource, local namespace, timeout, login choices, trusted endpoint origins, and trusted ID-token audiences.
-- ``AuthLoginChoice`` selects either the identity service's hosted selection or an exact provider-specific connection.
+- ``AuthLoginChoice`` selects a hosted service choice or connection. The direct adapter accepts `.connection("apple")` and `.connection("github")` only.
 - ``AuthAPIResource`` sends either an Auth0-style audience or an RFC 8707 resource parameter.
 
 ## Session
@@ -22,7 +22,7 @@ Use this page as a map of the public surface. The symbol pages generated from Sw
 ## OIDC and extension points
 
 - ``NativeOIDCAdapter`` is the production Authorization Code, PKCE, discovery, and RS256 implementation.
-- ``AuthOIDCAdapter`` is the trusted boundary for another validated OIDC implementation.
+- ``AuthOIDCAdapter`` is the trusted session boundary for validated OIDC or backend-issued application sessions.
 - ``AuthTokenResponse`` carries sensitive validated adapter output and always redacts its textual description.
 - ``AuthIDTokenBinding`` preserves verified audience and authentication-time claims across refresh and restart.
 - ``AuthBrowserSession`` abstracts browser presentation for testing.
@@ -34,3 +34,13 @@ Use this page as a map of the public surface. The symbol pages generated from Sw
 - ``AuthRecoveryAction`` suggests retry, sign-in, configuration repair, storage waiting, or no automatic action.
 
 See <doc:Configuration>, <doc:SessionLifecycle>, <doc:ProvidersAndExtensions>, and <doc:ErrorsAndRecovery> for behavioral contracts and defaults.
+
+
+## Direct sign-in
+
+- ``DirectAuthAdapter`` connects direct Apple/GitHub authorization to application-owned backend sessions.
+- ``DirectAuthBackend`` defines transaction creation, verified exchange and refresh without assuming API endpoints.
+- ``DirectAuthProvider``, ``DirectAuthTransaction`` and ``DirectAuthProof`` describe the provider exchange.
+- ``DirectAppleAuthorization`` is the injectable native boundary; ``SystemAppleAuthorization`` is its production implementation.
+
+See <doc:ProvidersAndExtensions> and `Docs/ProviderSetup.md` for required backend verification and setup.

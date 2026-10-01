@@ -34,7 +34,7 @@ public actor AuthClient {
 
   /// Creates a client with a trusted adapter and an exclusive storage lock based on the adapter's immutable configuration.
   ///
-  /// The adapter must return fully verified output. See <doc:ProvidersAndExtensions>.
+  /// The adapter must return verified OIDC output or trusted backend-issued application sessions. See <doc:ProvidersAndExtensions>.
   /// - Throws: Storage errors or `AuthError.sessionAlreadyInUse`.
   public init(adapter: any AuthOIDCAdapter) async throws {
     let configuration = await adapter.configuration

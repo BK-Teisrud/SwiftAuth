@@ -8,14 +8,14 @@ The canonical guide is the [Auth DocC catalog](../Sources/Auth/Auth.docc/Auth.md
 | [Configuration](../Sources/Auth/Auth.docc/Configuration.md) | Defaults, scopes, resources, callbacks, trusted origins, and namespaces |
 | [Session lifecycle](../Sources/Auth/Auth.docc/SessionLifecycle.md) | Restore, login, refresh, cancellation, account changes, and logout |
 | [Networking integration](../Sources/Auth/Auth.docc/NetworkingIntegration.md) | Credential binding and protected requests |
-| [Providers and extensions](../Sources/Auth/Auth.docc/ProvidersAndExtensions.md) | Hosted connections and adapter, browser, and transport contracts |
+| [Providers and extensions](../Sources/Auth/Auth.docc/ProvidersAndExtensions.md) | Direct Apple/GitHub, backend sessions, hosted OIDC, and extension contracts |
 | [Errors and recovery](../Sources/Auth/Auth.docc/ErrorsAndRecovery.md) | `AuthError`, recovery actions, and Networking error mapping |
-| [Security](../Sources/Auth/Auth.docc/Security.md) | PKCE, JWS/JWK, claims, limits, Keychain, and logout markers |
+| [Security](../Sources/Auth/Auth.docc/Security.md) | Direct backend trust, PKCE, JWS/JWK, claims, limits, Keychain, and logout markers |
 | [Architecture](../Sources/Auth/Auth.docc/Architecture.md) | Ownership, actors, persistence, and maintenance boundaries |
 | [Public API reference](../Sources/Auth/Auth.docc/APIReference.md) | Public types, properties, initializers, methods, and defaults |
 | [Testing and release](../Sources/Auth/Auth.docc/TestingAndRelease.md) | Test suites, signed integration checks, DocC, CI, and release gates |
 
-[Provider setup](ProviderSetup.md) describes the concrete service and application integration checklist.
+[Provider setup](ProviderSetup.md) describes the direct backend contract and hosted service/application integration checklists.
 
 Read the Markdown directly on GitHub or build the DocC catalog in Xcode. Do not commit generated DocC archives, symbol graphs, DerivedData, test results, analysis reports, or internal findings.
 

@@ -2,6 +2,14 @@
 
 Auth fails closed across protocol validation, endpoint trust, credential persistence, refresh rotation, and account changes.
 
+## Direct provider and backend trust
+
+Direct login generates random state and an Apple nonce or GitHub S256 PKCE challenge. A server-issued transaction binds these to an allowed provider/application/callback and must expire and be consumed once. Apple credentials and GitHub authorization codes are unverified evidence; no local profile or decoded token establishes an application identity.
+
+The application implements ``DirectAuthBackend`` over authenticated HTTPS. Its server must verify Apple signatures, claims, nonce and code exchange, or exchange GitHub codes with PKCE and fetch the authenticated provider user. The backend owns provider secrets, user mappings, application access/refresh tokens and revocation. Never automatically link accounts by email. Backend sessions use the internal user ID and configured backend issuer; provider tokens are never API credentials.
+
+The direct adapter checks backend session identity, nonempty credentials and future expiry; it does not parse or verify the application's access token as a JWT. Transport redirects, response limits and redacted errors are responsibilities of the supplied backend implementation. An uncertain refresh is quarantined using the same durable session machinery as hosted OIDC. Local logout does not revoke a server session.
+
 ## OIDC and cryptography
 
 PKCE verifier, state, and nonce use `SecRandomCopyBytes`. SHA-256 uses CryptoKit. RSA signature verification uses `SecKeyVerifySignature`; Auth implements no cryptographic primitive.
@@ -20,7 +28,7 @@ JWT, discovery, and token responses are limited to 64 KiB. JWKS is limited to 25
 
 ## Storage
 
-Only the refresh token, minimal issuer-plus-subject identity, original nonce and claim binding, refresh quarantine, and required metadata are persisted. Access and ID tokens are memory-only.
+Only the refresh token, minimal issuer-plus-subject identity, refresh quarantine, and required metadata are persisted. Hosted OIDC also persists its original nonce and claim binding; direct sessions do not persist provider evidence or OIDC metadata. Access and ID tokens are memory-only.
 
 Keychain accessibility is `WhenUnlockedThisDeviceOnly`; synchronization and shared access groups are disabled. Data Protection Keychain is requested explicitly on macOS. Availability errors do not mean that a record is absent. Keychain data may survive application removal.
 

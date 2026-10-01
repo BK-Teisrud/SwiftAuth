@@ -1,12 +1,12 @@
 # ``Auth``
 
-Build passwordless OIDC sign-in, secure local sessions, and session-bound API credentials without embedding provider secrets or login UI in the package.
+Build direct Apple/GitHub or hosted OIDC sign-in, secure local sessions, and session-bound API credentials without embedding provider secrets or login UI in the package.
 
 ## Overview
 
 Auth is a Swift 6 library for iOS 17+ and macOS 14+. It implements Authorization Code with PKCE S256, OIDC discovery, RS256 ID-token validation, Keychain-backed refresh credentials, coordinated refresh, explicit logout, and a SwiftNetworking credential adapter.
 
-The identity service owns Apple, Vipps, email, and SMS authentication. Auth is a public native OIDC client and never receives passwords or one-time codes. Interactive authentication uses `ASWebAuthenticationSession`; embedded web views are outside the supported security contract.
+Auth supports direct Apple and GitHub authentication with your own backend through ``DirectAuthAdapter``. ``SystemAppleAuthorization`` presents native Sign in with Apple; GitHub uses the system browser with PKCE. Your backend verifies provider evidence and issues application sessions. Hosted OIDC remains available through ``NativeOIDCAdapter``. See <doc:ProvidersAndExtensions>.
 
 Auth uses Foundation, AuthenticationServices, Security, CryptoKit, and SwiftNetworking. It has no third-party identity SDK, JWT library, DesignSystem dependency, application navigation, or prebuilt screen.
 

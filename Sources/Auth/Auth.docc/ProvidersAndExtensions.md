@@ -1,6 +1,18 @@
 # Providers and extensions
 
-Use hosted connections for sign-in methods behind the same broker. Implement a new ``AuthOIDCAdapter`` only when the OIDC service contract itself changes.
+Use ``DirectAuthAdapter`` for Apple and GitHub with your own backend, or hosted connections for sign-in methods behind an OIDC service.
+
+## Direct providers and backend sessions
+
+``SystemAppleAuthorization`` presents native Sign in with Apple. GitHub authorization opens `https://github.com/login/oauth/authorize` in ``SystemAuthBrowser`` with random state and S256 PKCE. Provider credentials are unverified evidence until ``DirectAuthBackend/exchange(_:)`` succeeds. Provider tokens never become application API credentials.
+
+The application implements ``DirectAuthBackend`` using its existing API client. The package intentionally does not assume endpoint paths or a JSON format. Backend responses are trusted over authenticated HTTPS; the backend URL identifies the application's issuer and does not need OIDC discovery. ``AuthIdentity/subject`` is the backend's internal user ID. Direct responses must not contain OIDC nonce or binding metadata.
+
+Create ``DirectAuthAdapter`` with the backend URL, application ID, GitHub public client ID, registered callback, environment-specific Keychain namespace, backend implementation, Apple authorizer and system browser. Then create `AuthClient(adapter: adapter)` and call `login(choice: .connection("apple"))` or `login(choice: .connection("github"))`. The default `.serviceSelection` is unsupported for direct login. Existing restore, session observation, refresh quarantine, and ``AuthCredentialProvider`` behavior applies.
+
+The backend must implement single-use login transactions, Apple claim/signature and code verification, GitHub code exchange with the original PKCE challenge, stable provider-to-user mappings, application session issuance, atomic refresh rotation and session revocation. Never identify or link accounts automatically by email. Use local logout even if backend revocation fails; provider logout is unsupported by this adapter. See the concrete integration checklist in `Docs/ProviderSetup.md`.
+
+Direct authorization follows [Apple AuthenticationServices](https://developer.apple.com/documentation/authenticationservices/asauthorizationappleidrequest) and [GitHub authorization](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps). No live provider or backend integration is claimed as verified.
 
 ## Hosted providers
 
@@ -8,7 +20,7 @@ Apple, Vipps, email, and SMS are identity-service concerns. ``AuthLoginChoice/co
 
 Applications must verify every enabled connection end to end against the real broker and protected API. Never claim provider support based only on compilation or synthetic token tests.
 
-## Adapter contract
+## OIDC adapter contract
 
 An adapter returns ``AuthTokenResponse`` only after validating protocol, signatures, and claims. It must:
 

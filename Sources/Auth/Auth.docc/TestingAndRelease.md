@@ -10,7 +10,7 @@ swift test
 xcrun swift-format lint --strict --recursive Package.swift Sources Tests
 ```
 
-The test suite covers session transitions, concurrent refresh, cancellation, persistence ordering, logout recovery, account switching, Networking integration, callback validation, discovery trust, response limits, duplicate JSON keys, synthetic RSA signatures, JWK selection, and OIDC claims. It does not contact a public provider.
+The test suite covers session transitions, concurrent refresh, cancellation, persistence ordering, logout recovery, account switching, Networking integration, callback validation, discovery trust, response limits, duplicate JSON keys, synthetic RSA signatures, JWK selection, and OIDC claims. Direct adapter tests also cover GitHub S256 PKCE, backend-issued application credentials, invalid/duplicate callbacks, cancellation, unsupported selection, Apple cancellation and refresh identity preservation. Tests do not contact a public provider or implement the production backend.
 
 The Keychain integration case in the SwiftPM suite is disabled unless a signed application test host defines `AUTH_HOSTED_KEYCHAIN_TESTS`. This repository intentionally ships no application project. The consuming application must own and run that signed test on supported iOS and macOS versions.
 
@@ -28,10 +28,10 @@ A green workflow does not claim signed Data Protection Keychain behavior, callba
 
 Before an application release, verify:
 
-1. exact provider client, callback, logout, scope, connection, audience/resource, rotation, and JWKS configuration;
+1. exact provider/client/callback configuration; for direct login, server transactions, Apple verification, GitHub PKCE exchange, internal user mapping and application-token issuance; for hosted OIDC, scopes, connections, audience/resource and JWKS;
 2. every enabled login method on simulator and physical device;
 3. signed Data Protection Keychain behavior, locked-device handling, failed deletion, and pending logout recovery;
-4. refresh success, rotation, `invalid_grant`, timeout after possible send, termination, and restart quarantine;
+4. refresh success, atomic rotation, definitive rejection, timeout after possible send, termination, restart quarantine, transaction replay rejection and server session revocation;
 5. account changes, delayed 401 responses, late results, and cache isolation;
 6. the real access token against the protected backend, including insufficient scope and revoked access;
 7. sanitized evidence recording Auth and Networking versions, OS versions, environment, and limitations.

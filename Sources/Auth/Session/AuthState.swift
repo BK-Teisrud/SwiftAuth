@@ -2,9 +2,9 @@ import Foundation
 
 /// Stable identity uses issuer plus subject, never email.
 public struct AuthIdentity: Sendable, Equatable, Codable {
-  /// The verified issuer identifier matching the ID token's `iss` claim.
+  /// The verified OIDC issuer or the configured backend's identity namespace.
   public let issuer: String
-  /// The stable user identifier from `sub`; combine it with issuer and never replace it with email.
+  /// The stable OIDC subject or internal backend user ID; combine it with issuer, never email.
   public let subject: String
   /// Creates an identity value. This initializer performs no signature or claim validation; the adapter owns that responsibility.
   public init(issuer: String, subject: String) {

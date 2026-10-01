@@ -16,14 +16,18 @@ The action is guidance; it never performs login, retry, or logout.
 
 ## Important categories
 
-- `invalidConfiguration`, `providerConfiguration`, and `unsupportedProviderFeature` require reviewed configuration or provider capabilities.
-- `callbackValidation`, `invalidTokenResponse`, and `tokenValidation` indicate protocol validation failure. Do not accept partial identity.
+- `invalidConfiguration`, `discovery`, and `unsupportedProviderFeature` require reviewed configuration or provider capabilities.
+- `callback`, `tokenExchange`, and `idTokenValidation` indicate protocol validation failure. Do not accept partial identity.
 - `networkUnavailable` is limited to failures known to occur before a refresh credential could be sent.
 - `serviceUnavailable` represents a service-side failure with no raw response exposed.
 - `refreshRejected` requires new login, including `invalid_grant`.
 - `refreshOutcomeUnknown` means refresh may have been sent and rotated. The credential remains quarantined; do not retry it.
 - `operationInvalidated` protects a later session from stale operations or unknown rejected tokens.
 - `keychain`, `storage`, and `logoutPersistenceUnavailable` require explicit storage handling; absence must not be inferred from an availability failure.
+
+## Direct backend errors
+
+The application's ``DirectAuthBackend`` implementation must map HTTP and decoding failures to redacted ``AuthError`` values. Use `refreshRejected` only for a definitive invalid/expired application refresh token. Never retry a possibly sent exchange or refresh automatically; uncertain refresh outcomes remain quarantined. Direct login rejects unknown provider choices, invalid callback/state, malformed application sessions and stale operation results. Apple cancellation produces `cancelled`.
 
 ## Networking mapping
 

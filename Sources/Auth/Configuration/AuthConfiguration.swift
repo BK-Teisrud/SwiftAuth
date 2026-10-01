@@ -1,11 +1,12 @@
 import CryptoKit
 import Foundation
 
-/// Explicit provider connection choices; the service owns passwordless OTP and identity-provider flows.
+/// Explicit login choices interpreted by the configured adapter. Hosted services own OTP flows.
 public enum AuthLoginChoice: Sendable, Equatable {
   /// Lets the OIDC service present its configured sign-in methods.
   case serviceSelection
-  /// Selects the service's exact connection name. The name does not create an Apple, Vipps, or OTP integration.
+  /// Selects a hosted connection name, or "apple"/"github" with DirectAuthAdapter.
+  /// Hosted connection names alone do not create a provider integration.
   case connection(String)
 }
 

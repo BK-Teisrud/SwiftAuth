@@ -13,6 +13,7 @@ Use synthetic issuer, callback, and credential values.
 ## Environment
 
 - Auth version or commit:
+- Authentication mode (direct backend or hosted OIDC), provider, and backend version:
 - Networking version:
 - Swift/Xcode:
 - Platform and OS version:

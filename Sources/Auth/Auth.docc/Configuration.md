@@ -1,6 +1,14 @@
 # Configuration
 
-Treat ``AuthConfiguration`` as an immutable trust contract for one public OIDC client, one API resource, and one local storage identity.
+Treat configuration as an immutable trust contract for one application, identity issuer, API resource, and local storage identity.
+
+## Direct backend configuration
+
+Construct ``DirectAuthAdapter`` with your HTTPS backend URL, application ID, public GitHub client ID, registered callback and environment-specific Keychain namespace. Supply ``DirectAuthBackend``, ``DirectAppleAuthorization`` and ``AuthBrowserSession`` implementations. Its `configuration` uses the backend URL for issuer and resource and the application ID for storage isolation. It does not perform discovery or send OIDC scopes/resource parameters to your backend.
+
+Direct login accepts only `.connection("apple")` and `.connection("github")`. `.serviceSelection` is unsupported. `ephemeralBrowserSession` applies to GitHub browser authorization. The refresh timeout covers backend refresh and persistence. Use a new namespace when moving from broker sessions to direct sessions.
+
+The remaining OIDC-specific settings below apply to ``NativeOIDCAdapter``. See <doc:ProvidersAndExtensions> for the direct backend contract.
 
 ## Required values
 
@@ -25,7 +33,7 @@ The resource participates in the storage and process-lock identity. Multi-resour
 
 `postLogoutRedirectURI` enables separate provider logout when discovery publishes `end_session_endpoint`. Run provider logout before local logout when the service requires an in-memory ID-token hint. Auth never persists ID tokens.
 
-`prefersEphemeralWebBrowserSession` requests an ephemeral browser session but does not guarantee provider logout or isolation from all system browser state.
+`ephemeralBrowserSession` requests an ephemeral browser session but does not guarantee provider logout or isolation from all system browser state.
 
 ## Endpoint trust
 

@@ -1,10 +1,13 @@
 # Architecture
 
-The package keeps browser presentation, OIDC protocol work, session coordination, persistence, and API credentials behind explicit ownership boundaries.
+The package keeps native authorization, browser presentation, provider/backend exchange, OIDC protocol work, session coordination, persistence, and API credentials behind explicit ownership boundaries.
 
 ## Ownership
 
 - ``AuthClient`` owns session state, operation generations, refresh sharing, persistence commits, and public lifecycle operations.
+- ``DirectAuthAdapter`` owns direct state/nonce/PKCE creation, callback validation and exchange orchestration.
+- ``SystemAppleAuthorization`` owns native Apple authorization presentation and cancellation on MainActor.
+- The application implementation of ``DirectAuthBackend`` owns authenticated HTTPS transport; the server verifies provider evidence and owns users, sessions, rotation and revocation.
 - ``NativeOIDCAdapter`` owns PKCE creation, browser operations, and the native OIDC flow.
 - The internal OIDC service actor owns discovery, endpoint trust, token exchange, JWKS caching, signature validation, and claim validation outside MainActor.
 - ``SystemAuthBrowser`` owns one `ASWebAuthenticationSession` and remains on MainActor.
@@ -24,7 +27,7 @@ Operation generations stop late work from mutating a newer state. A separate ses
 
 ## Extension points
 
-``AuthOIDCAdapter`` is the provider-protocol boundary, ``AuthBrowserSession`` is the browser boundary, and SwiftNetworking transport is the network boundary. These are trusted extensions and must preserve all documented validation, privacy, cancellation, and response-limit guarantees.
+``AuthOIDCAdapter`` is the trusted session boundary for hosted OIDC and direct backend adapters, ``DirectAuthBackend`` is the application backend boundary, ``DirectAppleAuthorization`` is the native Apple boundary, ``AuthBrowserSession`` is the browser boundary, and SwiftNetworking transport is the network boundary. These are trusted extensions and must preserve all documented validation, privacy, cancellation, and response-limit guarantees.
 
 Keep domain models, screens, navigation, backend authorization, account caches, and application lifecycle coordination outside this package.
 

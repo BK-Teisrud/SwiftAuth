@@ -61,3 +61,7 @@ API access never presents the browser. `requiresAuthentication` must be explicit
 ## Continue
 
 Read <doc:Configuration> before provider registration, <doc:SessionLifecycle> before building account switching, and <doc:NetworkingIntegration> before sending protected requests.
+
+## Direct Apple and GitHub sign-in
+
+For application-owned backend sessions, construct ``DirectAuthAdapter`` and pass it to `AuthClient(adapter:)`. Supply ``SystemAppleAuthorization``, ``SystemAuthBrowser`` and an application implementation of ``DirectAuthBackend``. Use explicit `.connection("apple")` or `.connection("github")` choices. See <doc:ProvidersAndExtensions> and `Docs/ProviderSetup.md` for an example and the backend contract. The backend must be implemented before this flow can be used in production.

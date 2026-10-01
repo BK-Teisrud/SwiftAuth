@@ -13,9 +13,9 @@ public struct AuthIDTokenBinding: Codable, Sendable, Equatable {
   }
 }
 
-/// Sensitive adapter output, never exposed by AuthState. Only return credentials after complete OIDC validation.
+/// Sensitive adapter output, never exposed by AuthState. Only return application credentials after OIDC validation or trusted backend provider verification.
 public struct AuthTokenResponse: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
-  /// Identity from a fully verified ID token or preserved refresh identity.
+  /// Identity from a fully verified ID token, trusted backend session, or preserved refresh identity.
   public let identity: AuthIdentity
   /// Sensitive bearer token for the configured API; never log this value.
   public let accessToken: String
@@ -27,7 +27,7 @@ public struct AuthTokenResponse: Sendable, CustomStringConvertible, CustomDebugS
   public let loginNonce: String?
   /// Verified audiences and authentication time bound across refresh and restart.
   public let idTokenBinding: AuthIDTokenBinding?
-  /// Creates sensitive adapter output. Validate protocol, signature, and claims before construction.
+  /// Creates sensitive adapter output. Validate OIDC claims or a trusted HTTPS backend response before construction.
   ///
   /// Pass `refreshToken` explicitly, including `nil`. Nonce and binding default to `nil`; the native adapter supplies them after verified login.
   public init(
@@ -47,7 +47,8 @@ public struct AuthTokenResponse: Sendable, CustomStringConvertible, CustomDebugS
   public var debugDescription: String { description }
 }
 
-/// Provider boundary. New adapters must validate discovery, PKCE, state, nonce, signature and OIDC claims. Use Apple cryptographic APIs.
+/// Trusted session boundary. OIDC adapters validate discovery, PKCE, state, nonce, signature and claims.
+/// Direct adapters delegate provider verification to the application backend over trusted HTTPS.
 /// Never return decoded-but-unverified ID-token identity. Never automatically retry rotating refresh requests.
 @MainActor public protocol AuthOIDCAdapter: Sendable {
   /// Immutable client configuration that also determines the session's storage identity.

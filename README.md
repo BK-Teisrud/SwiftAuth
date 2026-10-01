@@ -1,14 +1,16 @@
 # Auth
 
-Auth is a reusable Swift package for passwordless OpenID Connect (OIDC) sign-in, secure local sessions, and API credentials. Version 0.1.0 requires Swift 6.0+, iOS 17+, and macOS 14+. The package contains no login screens, application navigation, passwords, client secrets, or DesignSystem dependency.
+Auth is a reusable Swift package for direct Apple/GitHub and hosted OpenID Connect (OIDC) sign-in, secure local sessions, and API credentials. Version 0.2.0 requires Swift 6.0+, iOS 17+, and macOS 14+. The package contains no login screens, application navigation, passwords, client secrets, or DesignSystem dependency.
 
-The identity service owns Apple, Vipps, email, and SMS authentication. The application is a public OIDC client: it never collects passwords or one-time codes. `AuthenticationServices` presents hosted sign-in in the system browser.
+Auth supports direct Apple and GitHub sign-in with your own backend through `DirectAuthAdapter`, as well as hosted OIDC through `NativeOIDCAdapter`. Direct sign-in requires no external identity broker. Your backend verifies provider evidence and issues application sessions; the package never contains provider secrets. See [direct provider setup](Docs/ProviderSetup.md#direct-sign-in-with-your-own-backend).
 
 **[Read the documentation index](Docs/README.md)** for setup, session behavior, provider boundaries, security, API contracts, and verification.
 
 ## Installation
 
-Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager and select the `Auth` product. Auth uses the exact SwiftNetworking 0.3.1 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
+Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager using version 0.2.0 or later and select the `Auth` product. Auth uses the exact SwiftNetworking 0.3.1 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
+
+The following configuration is for hosted OIDC. For direct Apple/GitHub, use the [DirectAuthAdapter example](Docs/ProviderSetup.md#direct-sign-in-with-your-own-backend) and supply your application backend implementation.
 
 ```swift
 import Foundation
@@ -28,21 +30,22 @@ No configuration is read automatically from the application's `Info.plist`. The 
 
 ## What the package provides
 
+- `DirectAuthAdapter` supports native Apple and GitHub browser authorization followed by your own backend session exchange. `DirectAuthBackend` defines the application integration contract; `SystemAppleAuthorization` presents native Apple authorization.
 - `NativeOIDCAdapter` implements Authorization Code with PKCE S256, discovery, and RS256 ID-token validation using Foundation, AuthenticationServices, Security, and CryptoKit.
 - `AuthClient` owns restore, interactive login, refresh coordination, cancellation, logout, and token-free observable state.
 - `AuthCredentialProvider` connects a session to SwiftNetworking without exposing tokens through application state.
 - `KeychainSessionStorage` stores the refresh token and minimal identity with `WhenUnlockedThisDeviceOnly`. Access and ID tokens are never persisted.
-- `AuthOIDCAdapter` is the boundary for a different OIDC service. Adapters must perform real protocol, signature, and claim validation.
+- `AuthOIDCAdapter` is the trusted session boundary. OIDC adapters verify tokens locally; the direct adapter relies on authenticated HTTPS backend verification.
 
-The package does not provide direct Apple or Vipps SDK integration, a password grant, an email or SMS provider, account linking, roles, backend authorization, token revocation, an encrypted database, multi-resource token exchange, or cross-application credential sharing.
+The package does not provide direct Vipps SDK integration, a password grant, an email or SMS provider, account linking, roles, backend authorization, token revocation, an encrypted database, multi-resource token exchange, or cross-application credential sharing.
 
 ## Security boundaries
 
 PKCE verifiers, state, and nonce use `SecRandomCopyBytes`; SHA-256 uses CryptoKit; RSA signatures use `SecKeyVerifySignature`. Auth contains protocol code but no custom cryptographic primitives or third-party JWT library.
 
-The current implementation accepts RS256 with RSA keys from 2048 through 8192 bits. It rejects unsigned tokens, unsupported algorithms, ambiguous or unknown key identifiers, private key material in a selected JWK, critical JWS extensions, duplicate JSON keys, invalid issuer/subject/audience/`azp`, expired or premature tokens, invalid nonce, and invalid optional `at_hash`. There is no clock leeway.
+The hosted OIDC implementation accepts RS256 with RSA keys from 2048 through 8192 bits. It rejects unsigned tokens, unsupported algorithms, ambiguous or unknown key identifiers, private key material in a selected JWK, critical JWS extensions, duplicate JSON keys, invalid issuer/subject/audience/`azp`, expired or premature tokens, invalid nonce, and invalid optional `at_hash`. There is no clock leeway.
 
-Discovery requires authorization code flow, PKCE S256, and RS256. Endpoints must use HTTPS and trusted origins. Token, discovery, and JWT responses are bounded to 64 KiB; JWKS is bounded to 256 KiB. The package never logs raw tokens, authorization codes, PKCE material, callback URLs, or personal data.
+Hosted OIDC discovery requires authorization code flow, PKCE S256, and RS256. Endpoints must use HTTPS and trusted origins. Token, discovery, and JWT responses are bounded to 64 KiB; JWKS is bounded to 256 KiB. Direct backend transport must apply its own response limits, credential-free diagnostics and redirect policy. The package never logs raw tokens, authorization codes, PKCE material, callback URLs, or personal data.
 
 ## Session contract
 
@@ -64,7 +67,7 @@ let response = try await api.execute(
 
 ## Provider status
 
-No live provider or backend integration is currently claimed as verified. The test suite uses synthetic RSA-signed tokens and the production Apple-based validation path, but this does not replace testing Apple, Vipps, email/SMS, the broker, and the protected API in the integrating application on a simulator and physical device. See [Provider setup](Docs/ProviderSetup.md).
+No live provider or backend integration is currently claimed as verified. The test suite covers direct GitHub PKCE/callback checks and backend session handling, plus synthetic RSA-signed OIDC tokens using Apple cryptographic APIs. This does not replace testing direct Apple/GitHub, backend verification, any enabled hosted connections, and the protected API in the integrating application on a simulator and physical device. See [Provider setup](Docs/ProviderSetup.md).
 
 ## Verification
 
@@ -89,7 +92,7 @@ CI verifies the minimum Swift 6 production build, the full test suite with the c
 - [Public API reference](Sources/Auth/Auth.docc/APIReference.md)
 - [Testing and release](Sources/Auth/Auth.docc/TestingAndRelease.md)
 
-The current public API is versioned as 0.1.0. Before 1.0, minor releases may contain source-breaking changes in accordance with Semantic Versioning.
+The current public API is versioned as 0.2.0. Before 1.0, minor releases may contain source-breaking changes in accordance with Semantic Versioning.
 
 ## License and security
 

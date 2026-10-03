@@ -138,8 +138,9 @@ public protocol DirectAuthBackend: Sendable {
         url: url.url!,
         callbackURI: configuration.redirectURI, ephemeral: configuration.ephemeralBrowserSession)
       try check(id)
-      let fields = try OIDCCallbackValidator(issuer: URL(string: "https://github.com")!).fields(
-        callback, expected: configuration.redirectURI, state: state)
+      let fields = try OIDCCallbackValidator(issuer: URL(string: "https://github.com/login/oauth")!)
+        .fields(
+          callback, expected: configuration.redirectURI, state: state)
       if fields["error"] != nil { throw AuthError.providerRejected }
       guard let code = fields["code"], !code.isEmpty else { throw AuthError.callback }
       proof = DirectAuthProof(

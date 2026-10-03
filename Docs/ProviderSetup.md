@@ -59,6 +59,8 @@ try await auth.login(choice: .connection("apple"))
 
 `appBackend` is the application's implementation, and `appWindow` is its active presentation window. Enable Sign in with Apple for the signed application and register the GitHub OAuth app callback. No email/profile scopes are requested by default. Provider configuration and real-device tests remain required.
 
+GitHub callbacks may include an `iss` parameter. When present, it must match GitHub’s issuer `https://github.com/login/oauth` exactly; callback URL and state validation also remain required. Callbacks without `iss` are supported.
+
 ### Required backend work before enabling login
 
 - **Begin:** accept provider, state, Apple nonce or GitHub S256 challenge, and callback. Validate application/provider/callback against a server allowlist. Store a random, expiring, single-use transaction ID bound to all these fields and the registered provider client. Return `DirectAuthTransaction`. Rate-limit transaction creation and exchanges.

@@ -1,6 +1,6 @@
 # Auth
 
-Auth is a reusable Swift package for direct Apple/GitHub and hosted OpenID Connect (OIDC) sign-in, secure local sessions, and API credentials. Version 0.2.0 requires Swift 6.0+, iOS 17+, and macOS 14+. The package contains no login screens, application navigation, passwords, client secrets, or DesignSystem dependency.
+Auth is a reusable Swift package for direct Apple/GitHub and hosted OpenID Connect (OIDC) sign-in, secure local sessions, and API credentials. Version 0.2.1 requires Swift 6.0+, iOS 17+, and macOS 14+. The package contains no login screens, application navigation, passwords, client secrets, or DesignSystem dependency.
 
 Auth supports direct Apple and GitHub sign-in with your own backend through `DirectAuthAdapter`, as well as hosted OIDC through `NativeOIDCAdapter`. Direct sign-in requires no external identity broker. Your backend verifies provider evidence and issues application sessions; the package never contains provider secrets. See [direct provider setup](Docs/ProviderSetup.md#direct-sign-in-with-your-own-backend).
 
@@ -8,7 +8,7 @@ Auth supports direct Apple and GitHub sign-in with your own backend through `Dir
 
 ## Installation
 
-Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager using version 0.2.0 or later and select the `Auth` product. Auth uses the exact SwiftNetworking 0.3.1 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
+Add `https://github.com/BK-Teisrud/SwiftAuth.git` in Swift Package Manager using version 0.2.1 or later and select the `Auth` product. Auth uses the exact SwiftNetworking 0.3.1 release. Applications that construct `HTTPClient` directly must also add the `Networking` product.
 
 The following configuration is for hosted OIDC. For direct Apple/GitHub, use the [DirectAuthAdapter example](Docs/ProviderSetup.md#direct-sign-in-with-your-own-backend) and supply your application backend implementation.
 
@@ -92,7 +92,7 @@ CI verifies the minimum Swift 6 production build, the full test suite with the c
 - [Public API reference](Sources/Auth/Auth.docc/APIReference.md)
 - [Testing and release](Sources/Auth/Auth.docc/TestingAndRelease.md)
 
-The current public API is versioned as 0.2.0. Before 1.0, minor releases may contain source-breaking changes in accordance with Semantic Versioning.
+The current public API is versioned as 0.2.1. Before 1.0, minor releases may contain source-breaking changes in accordance with Semantic Versioning.
 
 ## License and security
 

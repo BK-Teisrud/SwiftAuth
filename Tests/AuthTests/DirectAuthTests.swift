@@ -42,6 +42,7 @@ import Testing
 
 @MainActor private final class DirectBrowserStub: AuthBrowserSession {
   var authorizationURL: URL?
+  var issuer: String?
   var badState = false
   var duplicateCode = false
   var onAuthorization: (() async -> Void)?
@@ -55,6 +56,7 @@ import Testing
       .init(name: "state", value: badState ? "wrong" : state),
       .init(name: "code", value: "provider-code"),
     ]
+    if let issuer { callback.queryItems!.append(.init(name: "iss", value: issuer)) }
     if duplicateCode { callback.queryItems!.append(.init(name: "code", value: "second")) }
     return callback.url!
   }
@@ -90,6 +92,32 @@ import Testing
     #expect(
       await client.state == .signedIn(.init(issuer: "https://api.example.com", subject: "user")))
     #expect(adapter.configuration.storageService != (try configuration()).storageService)
+  }
+
+  @Test func githubIssuerIdentificationIsAccepted() async throws {
+    let backend = DirectBackendStub()
+    let browser = DirectBrowserStub()
+    browser.issuer = "https://github.com/login/oauth"
+    let adapter = try adapter(backend, browser)
+    let response = try await adapter.login(choice: .connection("github"))
+    #expect(response.accessToken == "app-access")
+    #expect(backend.exchanges == 1)
+  }
+
+  @Test func unexpectedGithubIssuerNeverReachesExchange() async throws {
+    for issuer in [
+      "https://github.com", "https://attacker.example.com/login/oauth",
+      "https://github.com/login/oauth/",
+    ] {
+      let backend = DirectBackendStub()
+      let browser = DirectBrowserStub()
+      browser.issuer = issuer
+      let adapter = try adapter(backend, browser)
+      await #expect(throws: AuthError.callback) {
+        try await adapter.login(choice: .connection("github"))
+      }
+      #expect(backend.exchanges == 0)
+    }
   }
 
   @Test func invalidCallbacksNeverReachExchange() async throws {

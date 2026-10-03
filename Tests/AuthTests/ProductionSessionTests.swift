@@ -38,8 +38,11 @@ import Testing
     let adapter = FakeAdapter(configuration: try configuration())
     adapter.tokenLifetime = 30
     adapter.providesRefreshToken = false
+    let now = Date()
+    adapter.now = { now }
     let client = AuthClient(
-      configuration: adapter.configuration, service: adapter, storage: MemoryStorage())
+      configuration: adapter.configuration, service: adapter, storage: MemoryStorage(), now: { now }
+    )
     try await client.login()
     #expect(try await client.validAccessToken() == "synthetic-access")
     #expect(adapter.refreshCount == 0)

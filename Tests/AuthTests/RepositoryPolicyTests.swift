@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 @Suite struct RepositoryPolicyTests {
-  @Test func publishedMarkdownMatchesAllowlistAndExampleAppIsAbsent() throws {
+  @Test func publishedMarkdownMatchesAllowlistAndExampleAppIsIncluded() throws {
     let repository = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()
       .deletingLastPathComponent()
@@ -13,6 +13,8 @@ import Testing
       ".github/pull_request_template.md",
       "Docs/ProviderSetup.md",
       "Docs/README.md",
+      "Examples/ExampleAuthApp/README.md",
+      "Examples/ExampleAuthApp/TestBackend/README.md",
       "README.md",
       "SECURITY.md",
       "Sources/Auth/Auth.docc/APIReference.md",
@@ -48,6 +50,6 @@ import Testing
 
     #expect(actual == expected)
     let examples = repository.appendingPathComponent("Examples").path
-    #expect(!FileManager.default.fileExists(atPath: examples))
+    #expect(FileManager.default.fileExists(atPath: examples))
   }
 }

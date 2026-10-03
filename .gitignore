@@ -66,3 +66,7 @@ __pycache__/
 
 # CI private dependency mirror; never commit downloaded dependency repositories
 /.ci-dependencies/
+
+# Example backend: local tunnel tooling and runtime state
+/Examples/ExampleAuthApp/TestBackend/bin/
+/Examples/ExampleAuthApp/TestBackend/.runtime/

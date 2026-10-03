@@ -17,6 +17,8 @@ The canonical guide is the [Auth DocC catalog](../Sources/Auth/Auth.docc/Auth.md
 
 [Provider setup](ProviderSetup.md) describes the direct backend contract and hosted service/application integration checklists.
 
+The [example iOS application](../Examples/ExampleAuthApp/README.md) demonstrates direct sign-in with this checkout and includes an optional GitHub test backend.
+
 Read the Markdown directly on GitHub or build the DocC catalog in Xcode. Do not commit generated DocC archives, symbol graphs, DerivedData, test results, analysis reports, or internal findings.
 
 ## Documentation policy
@@ -28,6 +30,7 @@ The published Markdown set is intentionally limited to:
 - `README.md` and `SECURITY.md` at the repository root;
 - this index and `ProviderSetup.md` under `Docs`;
 - the canonical articles in `Sources/Auth/Auth.docc`;
-- GitHub issue and pull-request templates.
+- GitHub issue and pull-request templates;
+- the example app and test backend READMEs under `Examples/ExampleAuthApp`.
 
 Do not add standalone changelogs, roadmaps, contribution guides, release checklists, repository-setup notes, agent instructions, audit reports, migration reports, meeting notes, or duplicate handbooks. Put durable product guidance in the closest existing article, keep release evidence outside the repository, and use Git history and GitHub Releases for change history.

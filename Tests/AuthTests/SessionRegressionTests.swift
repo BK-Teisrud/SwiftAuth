@@ -7,6 +7,7 @@ import Testing
 @MainActor private final class SessionFixtureAdapter: AuthOIDCAdapter {
   let configuration: AuthConfiguration
   var subject = "user-A"
+  var now: () -> Date = { Date() }
   var lifetime: TimeInterval = 600
   var refreshes = 0
   var loginFailure: AuthError?
@@ -17,7 +18,7 @@ import Testing
   func login(choice: AuthLoginChoice) async throws -> AuthTokenResponse {
     if let loginFailure { throw loginFailure }
     return .init(
-      identity: identity, accessToken: subject, expiresAt: Date().addingTimeInterval(lifetime),
+      identity: identity, accessToken: subject, expiresAt: now().addingTimeInterval(lifetime),
       refreshToken: "refresh")
   }
   func cancelLogin() async {}
@@ -27,7 +28,7 @@ import Testing
     refreshes += 1
     return .init(
       identity: identity, accessToken: "refresh-\(refreshes)",
-      expiresAt: Date().addingTimeInterval(lifetime), refreshToken: "replacement")
+      expiresAt: now().addingTimeInterval(lifetime), refreshToken: "replacement")
   }
   func logoutAtProvider() async throws {}
 }
@@ -74,7 +75,10 @@ private actor Delayed401: HTTPTransport {
     let config = try configuration()
     let adapter = SessionFixtureAdapter(config)
     adapter.lifetime = 30
-    let auth = AuthClient(configuration: config, service: adapter, storage: MemoryStorage())
+    let now = Date()
+    adapter.now = { now }
+    let auth = AuthClient(
+      configuration: config, service: adapter, storage: MemoryStorage(), now: { now })
     try await auth.login()
     for _ in 0..<3 { _ = try await auth.validAccessToken() }
     #expect(adapter.refreshes == 0)

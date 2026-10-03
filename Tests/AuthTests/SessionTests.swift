@@ -53,6 +53,7 @@ final class MemoryStorage: SessionStorage, @unchecked Sendable {
   var heldPreparation: CheckedContinuation<Void, Never>?
   var holdCancel = false
   var heldCancel: CheckedContinuation<Void, Never>?
+  var now: () -> Date = { Date() }
   var tokenLifetime: TimeInterval = 600
   var providesRefreshToken = true
   var refreshFailure: AuthError?
@@ -76,7 +77,7 @@ final class MemoryStorage: SessionStorage, @unchecked Sendable {
   }
   func login(choice: AuthLoginChoice) async throws -> AuthTokenResponse {
     if holdLogin { return try await withCheckedThrowingContinuation { heldLogin = $0 } }
-    return tokens(expires: Date().addingTimeInterval(tokenLifetime))
+    return tokens(expires: now().addingTimeInterval(tokenLifetime))
   }
   func cancelLogin() async {
     cancelCount += 1

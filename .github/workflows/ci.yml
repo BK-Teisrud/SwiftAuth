@@ -55,3 +55,23 @@ jobs:
           if-no-files-found: warn
           path: |
             ${{ runner.temp }}/auth-ios-tests.xcresult
+
+  example:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build bundled example against this checkout
+        run: xcodebuild -project Examples/ExampleAuthApp/ExampleAuthApp.xcodeproj -scheme ExampleAuthApp -destination 'generic/platform=iOS Simulator' -derivedDataPath "${{ runner.temp }}/auth-example" CODE_SIGNING_ALLOWED=NO build
+      - name: Check example Swift formatting
+        run: xcrun swift-format lint --strict --recursive Examples/ExampleAuthApp/ExampleAuthApp Examples/ExampleAuthApp/ExampleAuthAppTests Examples/ExampleAuthApp/ExampleAuthAppUITests
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Test GitHub example backend
+        working-directory: Examples/ExampleAuthApp/TestBackend
+        run: npm test

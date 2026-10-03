@@ -97,3 +97,9 @@ The current public API is versioned as 0.2.1. Before 1.0, minor releases may con
 ## License and security
 
 See [security reporting](SECURITY.md). Copyright © 2026 Teisrud Development AS. All rights reserved; see [LICENSE](LICENSE).
+
+## Example application
+
+Open [`Examples/ExampleAuthApp/ExampleAuthApp.xcodeproj`](Examples/ExampleAuthApp/ExampleAuthApp.xcodeproj) in Xcode 26.2 or later. The iOS 26.2+ example uses this checkout as a local package dependency and demonstrates direct Apple/GitHub sign-in, session restoration, verified profiles, and logout. Select your own signing team for device runs.
+
+See the [example setup guide](Examples/ExampleAuthApp/README.md) for backend configuration and the optional GitHub test server. No credentials or tunnel binaries are included. The library itself still supports iOS 17+ and macOS 14+.
